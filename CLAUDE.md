@@ -1,4 +1,4 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -40,4 +40,4 @@ Chrome 擴充套件（Manifest V3）使用 React + TypeScript：
 功能規劃文件位於 `specs/<功能名稱>/`，包含 spec.md、plan.md、data-model.md 及 checklists/。
 
 ## spec-kit
-所有的Markdown內容總是用中文撰寫
+所有的Markdown內容總是用中文撰寫 spec.md, task.md等等

@@ -17,7 +17,9 @@
       "Bash(npm install *)",
       "Bash(npm view *)",
       "Bash(npm run *)",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(.specify/scripts/powershell/create-new-feature.ps1 這不是手機介面 是chrome extension *)",
+      "WebFetch(domain:contribution.usercontent.google.com)"
     ]
   }
 }
