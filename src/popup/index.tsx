@@ -187,10 +187,22 @@ function PopupApp() {
   };
 
   const handleSettingsClick = () => {
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.openOptionsPage) {
-      chrome.runtime.openOptionsPage();
+    console.log('Settings button clicked');
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+      if (chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage(() => {
+          if (chrome.runtime.lastError) {
+            console.error('Error opening options:', chrome.runtime.lastError);
+            chrome.tabs.create({ url: chrome.runtime.getURL('options/index.html') });
+          }
+        });
+      } else {
+        chrome.tabs.create({ url: chrome.runtime.getURL('options/index.html') });
+      }
     } else {
-      console.log('Settings clicked');
+      console.log('Settings clicked (non-extension environment)');
+      // For development environment (Vite serves from root)
+      window.open('/src/options/index.html', '_blank');
     }
   };
 
