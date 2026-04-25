@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -L \"https://stitch.uxpin.com/project/9523016530179372697/screen/9d52679e71a44c10ba6ebaa5127ace04\" -H \"Accept: application/json\")",
+      "WebFetch(domain:stitch.uxpin.com)",
+      "WebSearch",
+      "mcp__stitch__get_project",
+      "mcp__stitch__list_screens",
+      "mcp__stitch__get_screen",
+      "WebFetch(domain:lh3.googleusercontent.com)",
+      "Bash(powershell -File .specify/scripts/powershell/create-new-feature.ps1 \"建立基礎設施，內容先不要去撰寫 該裝的Package裝一裝\" --json --short-name \"base-infrastructure\")",
+      "Bash(powershell -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)",
+      "Bash(powershell -File .specify/scripts/powershell/setup-plan.ps1 -Json)",
+      "Bash(powershell -File .specify/scripts/powershell/update-agent-context.ps1 -AgentType claude)",
+      "Bash(powershell -File .specify/scripts/powershell/check-prerequisites.ps1 -Json)",
+      "Bash(powershell *)",
+      "Bash(npm install *)",
+      "Bash(npm view *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)"
+    ]
+  }
+}
