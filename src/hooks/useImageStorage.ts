@@ -29,33 +29,39 @@ export function useImageStorage(): UseImageStorageReturn {
     }
   }, []);
 
-  const saveImage = useCallback(async (blob: Blob, thumbnail?: Blob) => {
-    try {
-      setError(null);
-      const record: ImageRecord = {
-        id: crypto.randomUUID(),
-        blob,
-        timestamp: Date.now(),
-        thumbnail,
-      };
-      await imageService.saveImage(record);
-      await refreshImages();
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to save image'));
-      throw err;
-    }
-  }, [refreshImages]);
+  const saveImage = useCallback(
+    async (blob: Blob, thumbnail?: Blob) => {
+      try {
+        setError(null);
+        const record: ImageRecord = {
+          id: crypto.randomUUID(),
+          blob,
+          timestamp: Date.now(),
+          thumbnail,
+        };
+        await imageService.saveImage(record);
+        await refreshImages();
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to save image'));
+        throw err;
+      }
+    },
+    [refreshImages]
+  );
 
-  const deleteImage = useCallback(async (id: string) => {
-    try {
-      setError(null);
-      await imageService.deleteImage(id);
-      await refreshImages();
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to delete image'));
-      throw err;
-    }
-  }, [refreshImages]);
+  const deleteImage = useCallback(
+    async (id: string) => {
+      try {
+        setError(null);
+        await imageService.deleteImage(id);
+        await refreshImages();
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to delete image'));
+        throw err;
+      }
+    },
+    [refreshImages]
+  );
 
   useEffect(() => {
     refreshImages();

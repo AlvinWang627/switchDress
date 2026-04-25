@@ -3,9 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { CameraIcon } from './CameraIcon';
 
 vi.mock('@iconify/react', () => ({
-  Icon: vi.fn(({ icon, style }) => (
-    <span data-testid="mock-icon" data-icon={icon} style={style} />
-  )),
+  Icon: vi.fn(({ icon, style }) => <span data-testid="mock-icon" data-icon={icon} style={style} />),
 }));
 
 describe('CameraIcon', () => {

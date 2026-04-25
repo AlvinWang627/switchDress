@@ -60,8 +60,12 @@ function ClothingAreaCard({ hasScreenshot }: ClothingAreaCardProps) {
         <p className="font-body-md text-body-md text-gray-900 dark:text-gray-100">已選擇服裝區域</p>
       ) : (
         <>
-          <h2 className="font-headline-md text-headline-md text-gray-900 dark:text-gray-100 mb-2 font-medium">尚無截圖</h2>
-          <p className="font-body-md text-body-md text-gray-600 dark:text-gray-400">在網頁上框選衣服區域進行截圖</p>
+          <h2 className="font-headline-md text-headline-md text-gray-900 dark:text-gray-100 mb-2 font-medium">
+            尚無截圖
+          </h2>
+          <p className="font-body-md text-body-md text-gray-600 dark:text-gray-400">
+            在網頁上框選衣服區域進行截圖
+          </p>
         </>
       )}
     </section>
@@ -89,7 +93,9 @@ function PhotoOption({ image, isSelected, onSelect }: PhotoOptionProps) {
     >
       <div className="w-full h-full rounded-lg overflow-hidden">
         <img
-          src={image.thumbnail ? URL.createObjectURL(image.thumbnail) : URL.createObjectURL(image.blob)}
+          src={
+            image.thumbnail ? URL.createObjectURL(image.thumbnail) : URL.createObjectURL(image.blob)
+          }
           alt="Portrait"
           className="w-full h-full object-cover"
         />
@@ -146,11 +152,7 @@ function PersonalPhotoSection({
       >
         {images.slice(0, 6).map((image) => (
           <div key={image.id} className={images.length === 1 ? 'w-1/3' : ''}>
-            <PhotoOption
-              image={image}
-              isSelected={image.id === selectedId}
-              onSelect={onSelect}
-            />
+            <PhotoOption image={image} isSelected={image.id === selectedId} onSelect={onSelect} />
           </div>
         ))}
       </div>

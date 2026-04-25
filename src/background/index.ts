@@ -10,7 +10,8 @@ chrome.runtime.onMessage.addListener((message: ChromeMessage, _sender, sendRespo
 
   switch (type) {
     case MESSAGE_TYPES.GET_IMAGES: {
-      imageService.getAllImages()
+      imageService
+        .getAllImages()
         .then((images) => sendResponse({ success: true, data: images }))
         .catch((error) => sendResponse({ success: false, error: error.message }));
       break;
@@ -23,7 +24,8 @@ chrome.runtime.onMessage.addListener((message: ChromeMessage, _sender, sendRespo
         timestamp: Date.now(),
         thumbnail,
       };
-      imageService.saveImage(record)
+      imageService
+        .saveImage(record)
         .then(() => sendResponse({ success: true }))
         .catch((error) => sendResponse({ success: false, error: error.message }));
       break;
