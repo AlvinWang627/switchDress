@@ -2,6 +2,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Icon } from '@iconify/react';
 import { useImageStorage } from '@/hooks/useImageStorage';
+import { useScreenshot } from '@/hooks/useScreenshot';
+
+import ScreenshotPreview from '@/components/ScreenshotPreview';
 import styles from './index.css?inline';
 
 const styleElement = document.createElement('style');
@@ -50,14 +53,17 @@ function Header({ onAlbumClick, onCameraClick, onSettingsClick }: HeaderProps) {
 }
 
 interface ClothingAreaCardProps {
-  hasScreenshot: boolean;
+  screenshotBlob?: Blob | null;
+  onDeleteScreenshot?: () => void;
 }
 
-function ClothingAreaCard({ hasScreenshot }: ClothingAreaCardProps) {
+function ClothingAreaCard({ screenshotBlob, onDeleteScreenshot }: ClothingAreaCardProps) {
   return (
     <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[200px] text-center shadow-sm">
-      {hasScreenshot ? (
-        <p className="font-body-md text-body-md text-gray-900 dark:text-gray-100">已選擇服裝區域</p>
+      {screenshotBlob ? (
+        <div className="w-full h-full max-h-[200px]">
+          <ScreenshotPreview blob={screenshotBlob} onDelete={onDeleteScreenshot ?? (() => {})} />
+        </div>
       ) : (
         <>
           <h2 className="font-headline-md text-headline-md text-gray-900 dark:text-gray-100 mb-2 font-medium">
@@ -175,15 +181,15 @@ function AIActionButton({ disabled }: { disabled: boolean }) {
 
 function PopupApp() {
   const { images, isLoading } = useImageStorage();
+  const { screenshots, capture, remove } = useScreenshot();
   const [selectedPhotoId, setSelectedPhotoId] = React.useState<string | null>(null);
-  const [hasScreenshot] = React.useState(false);
 
   const handleAlbumClick = () => {
     console.log('Album clicked');
   };
 
   const handleCameraClick = () => {
-    console.log('Camera clicked');
+    capture();
   };
 
   const handleSettingsClick = () => {
@@ -225,7 +231,12 @@ function PopupApp() {
       />
 
       <main className="flex-grow flex flex-col p-4 gap-4">
-        <ClothingAreaCard hasScreenshot={hasScreenshot} />
+        <ClothingAreaCard
+          screenshotBlob={screenshots[0]?.blob ?? null}
+          onDeleteScreenshot={() => remove(0)}
+        />
+
+        {/* ScreenshotOverlay is now rendered in the content script directly on the webpage */}
 
         {isLoading ? (
           <div className="text-center text-sm text-gray-500">載入中...</div>

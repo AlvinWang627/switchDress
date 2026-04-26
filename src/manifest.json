@@ -3,8 +3,8 @@
   "name": "switch-dress",
   "version": "0.1.0",
   "description": "Chrome Extension base infrastructure with React + TypeScript + Vite",
-  "permissions": ["storage"],
-  "optional_permissions": ["tabs", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab"],
+  "optional_permissions": ["tabs", "scripting"],
   "host_permissions": [],
   "action": {
     "default_title": "switch-dress",
@@ -14,5 +14,11 @@
     "service_worker": "background/index.js",
     "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/index.tsx"]
+    }
+  ],
   "options_page": "options/index.html"
 }

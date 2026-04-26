@@ -36,6 +36,37 @@ chrome.runtime.onMessage.addListener((message: ChromeMessage, _sender, sendRespo
       sendResponse({ success: false, error: 'Not implemented yet' });
       break;
     }
+    case MESSAGE_TYPES.CAPTURE_TAB: {
+      console.log('[background] CAPTURE_TAB received');
+      (async () => {
+        try {
+          // Service worker has no "current window" context,
+          // so we must explicitly get the last focused window.
+          const win = await chrome.windows.getLastFocused();
+          console.log('[background] Last focused window:', win.id, 'type:', win.type);
+
+          if (!win.id) {
+            sendResponse({ success: false, error: { message: 'No focused window found' } });
+            return;
+          }
+
+          const dataUrl = await chrome.tabs.captureVisibleTab(win.id, { format: 'png' });
+
+          if (dataUrl) {
+            console.log('[background] captureVisibleTab success, dataUrl length:', dataUrl.length);
+            sendResponse({ success: true, dataUrl });
+          } else {
+            console.error('[background] captureVisibleTab returned empty dataUrl');
+            sendResponse({ success: false, error: { message: 'No data captured' } });
+          }
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.error('[background] captureVisibleTab error:', errMsg);
+          sendResponse({ success: false, error: { message: errMsg } });
+        }
+      })();
+      break;
+    }
     default:
       console.warn('Unknown message type:', type);
       sendResponse({ success: false, error: 'Unknown message type' });
