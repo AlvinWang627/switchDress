@@ -19,7 +19,13 @@
       "Bash(npm run *)",
       "Bash(npm test *)",
       "Bash(.specify/scripts/powershell/create-new-feature.ps1 這不是手機介面 是chrome extension *)",
-      "WebFetch(domain:contribution.usercontent.google.com)"
+      "WebFetch(domain:contribution.usercontent.google.com)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs",
+      "WebFetch(domain:developer.chrome.com)",
+      "Bash(npm show *)",
+      "Bash(npx eslint *)",
+      "WebFetch(domain:ai.google.dev)"
     ]
   }
 }
