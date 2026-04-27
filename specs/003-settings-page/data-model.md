@@ -10,7 +10,7 @@
 
 | Field | Type | Validation | Notes |
 |-------|------|------------|-------|
-| `model` | `string` | 必填，預設 `"nano-banana2"` | 模型選擇 |
+| `model` | `string` | 必填，預設 `"gemini-3.1-flash-image-preview"` | 模型選擇 |
 | `apiKey` | `string` | 必填，非空白 | API Key |
 
 **Storage**: `chrome.storage.local` (key: `"user-settings"`)

@@ -16,6 +16,7 @@ export interface ImageRecord {
   blob: Blob;
   timestamp: number;
   thumbnail?: Blob;
+  isFavorite?: boolean;
 }
 
 export const POPUP_CONFIG: PopupWindow = {

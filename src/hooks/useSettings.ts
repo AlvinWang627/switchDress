@@ -3,7 +3,7 @@ import { saveSettings, loadSettings } from '@/services/settingsService';
 import type { UserSettings } from '@/types';
 
 const DEFAULT_SETTINGS: UserSettings = {
-  model: 'nano-banana2',
+  model: 'gemini-3.1-flash-image-preview',
   apiKey: '',
 };
 
@@ -28,6 +28,9 @@ export function useSettings(): UseSettingsReturn {
       setError(null);
       const saved = await loadSettings();
       if (saved) {
+        if (!saved.model) {
+          saved.model = 'gemini-3.1-flash-image-preview';
+        }
         setSettings(saved);
       }
     } catch (err) {
