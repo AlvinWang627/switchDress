@@ -10,6 +10,14 @@ vi.mock('@iconify/react', () => ({
     React.createElement('span', { 'data-testid': 'icon', 'data-icon': icon, className }),
 }));
 
+// react-responsive-masonry 在 vitest 下載入會因 ESM/CJS 互通出錯（"Cannot redefine property"），
+// 且排版本身不在我們的測試範圍，改以直接渲染子元素的版本取代
+vi.mock('react-responsive-masonry', () => {
+  const passthrough = ({ children }: { children?: React.ReactNode }) =>
+    React.createElement('div', { 'data-testid': 'masonry' }, children);
+  return { default: passthrough, ResponsiveMasonry: passthrough };
+});
+
 // jsdom 未實作 URL.createObjectURL / revokeObjectURL
 if (!URL.createObjectURL) {
   URL.createObjectURL = vi.fn(() => 'blob:mock-url');

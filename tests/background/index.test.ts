@@ -6,8 +6,15 @@ const imageServiceMock = vi.hoisted(() => ({
   getAllImages: vi.fn(),
   saveImage: vi.fn(),
 }));
+const geminiServiceMock = vi.hoisted(() => ({ synthesizeImage: vi.fn() }));
+const notificationServiceMock = vi.hoisted(() => ({
+  showSynthesisComplete: vi.fn(),
+  showError: vi.fn(),
+}));
 
 vi.mock('@/services/imageService', () => ({ imageService: imageServiceMock }));
+vi.mock('@/services/geminiService', () => ({ geminiService: geminiServiceMock }));
+vi.mock('@/services/notificationService', () => ({ notificationService: notificationServiceMock }));
 
 describe('background service worker', () => {
   let chromeMock: ReturnType<typeof installChromeMock>['chrome'];
@@ -27,6 +34,9 @@ describe('background service worker', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     imageServiceMock.getAllImages.mockReset();
     imageServiceMock.saveImage.mockReset();
+    geminiServiceMock.synthesizeImage.mockReset();
+    notificationServiceMock.showSynthesisComplete.mockReset();
+    notificationServiceMock.showError.mockReset();
 
     const installed = installChromeMock();
     chromeMock = installed.chrome;
@@ -135,6 +145,94 @@ describe('background service worker', () => {
       const res = await send({ type: MESSAGE_TYPES.CAPTURE_TAB });
 
       expect(res).toEqual({ success: false, error: { message: 'boom' } });
+    });
+  });
+
+  describe('AI_SYNTHESIZE', () => {
+    const personalBlob = new Blob(['person']);
+    const payload = {
+      personalPhotoDataUrl: 'data:image/png;base64,AAA',
+      clothingDataUrl: 'data:image/png;base64,BBB',
+      apiKey: 'key',
+      model: 'gemini-3.1-flash-image-preview',
+    };
+    const generated = new Blob(['result'], { type: 'image/png' });
+
+    beforeEach(() => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ blob: () => Promise.resolve(personalBlob) }));
+      imageServiceMock.saveImage.mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('成功：把 data URL 轉成 Blob 後合成、存入相片集、發出完成通知', async () => {
+      geminiServiceMock.synthesizeImage.mockResolvedValue({ success: true, imageBlob: generated });
+
+      const res = await send({ type: MESSAGE_TYPES.AI_SYNTHESIZE, payload });
+
+      expect(fetch).toHaveBeenCalledWith(payload.personalPhotoDataUrl);
+      expect(geminiServiceMock.synthesizeImage).toHaveBeenCalledWith(
+        personalBlob,
+        payload.clothingDataUrl,
+        'key',
+        'gemini-3.1-flash-image-preview'
+      );
+      const record = imageServiceMock.saveImage.mock.calls[0][0];
+      expect(record).toMatchObject({ blob: generated, isFavorite: false });
+      expect(record.id).toMatch(/^[0-9a-f-]{36}$/);
+      expect(notificationServiceMock.showSynthesisComplete).toHaveBeenCalledTimes(1);
+      expect(notificationServiceMock.showError).not.toHaveBeenCalled();
+      expect(res).toEqual({ success: true });
+    });
+
+    it('合成失敗：發出錯誤通知、不存檔，並回傳錯誤訊息', async () => {
+      geminiServiceMock.synthesizeImage.mockResolvedValue({ success: false, error: 'API error: 403' });
+
+      const res = await send({ type: MESSAGE_TYPES.AI_SYNTHESIZE, payload });
+
+      expect(notificationServiceMock.showError).toHaveBeenCalledWith('API error: 403');
+      expect(imageServiceMock.saveImage).not.toHaveBeenCalled();
+      expect(notificationServiceMock.showSynthesisComplete).not.toHaveBeenCalled();
+      expect(res).toEqual({ success: false, error: 'API error: 403' });
+    });
+
+    it('合成失敗但沒有訊息：通知使用 Unknown error', async () => {
+      geminiServiceMock.synthesizeImage.mockResolvedValue({ success: false });
+
+      await send({ type: MESSAGE_TYPES.AI_SYNTHESIZE, payload });
+
+      expect(notificationServiceMock.showError).toHaveBeenCalledWith('Unknown error');
+    });
+
+    it('存入相片集失敗：發出錯誤通知並回傳錯誤', async () => {
+      geminiServiceMock.synthesizeImage.mockResolvedValue({ success: true, imageBlob: generated });
+      imageServiceMock.saveImage.mockRejectedValue(new Error('quota'));
+
+      const res = await send({ type: MESSAGE_TYPES.AI_SYNTHESIZE, payload });
+
+      expect(notificationServiceMock.showError).toHaveBeenCalledWith('quota');
+      expect(notificationServiceMock.showSynthesisComplete).not.toHaveBeenCalled();
+      expect(res).toEqual({ success: false, error: 'quota' });
+    });
+
+    it('讀取個人照片失敗：不呼叫 Gemini，發出錯誤通知', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('bad data url')));
+
+      const res = await send({ type: MESSAGE_TYPES.AI_SYNTHESIZE, payload });
+
+      expect(geminiServiceMock.synthesizeImage).not.toHaveBeenCalled();
+      expect(notificationServiceMock.showError).toHaveBeenCalledWith('bad data url');
+      expect(res).toEqual({ success: false, error: 'bad data url' });
+    });
+
+    it('拋出非 Error 值時轉成字串', async () => {
+      geminiServiceMock.synthesizeImage.mockRejectedValue('boom');
+
+      const res = await send({ type: MESSAGE_TYPES.AI_SYNTHESIZE, payload });
+
+      expect(res).toEqual({ success: false, error: 'boom' });
     });
   });
 
