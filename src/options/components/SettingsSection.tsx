@@ -13,7 +13,7 @@ interface SettingsSectionProps {
 export function SettingsSection({ onSaveSuccess, onSaveError }: SettingsSectionProps) {
   const { settings, isLoading, isSaving, saveSettings } = useSettings();
   const [localSettings, setLocalSettings] = useState<UserSettings>({
-    model: 'nano-banana2',
+    model: 'gemini-3.1-flash-image-preview',
     apiKey: '',
   });
   const [showToast, setShowToast] = useState(false);

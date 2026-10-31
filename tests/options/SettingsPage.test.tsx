@@ -5,7 +5,7 @@ import { render, screen } from '@testing-library/react';
 // 若每次渲染都回傳新物件會造成無限重新渲染。
 const mocks = vi.hoisted(() => {
   const settingsState = {
-    settings: { model: 'nano-banana2', apiKey: '' },
+    settings: { model: 'gemini-3.1-flash-image-preview', apiKey: '' },
     isLoading: false,
     isSaving: false,
     error: null,

@@ -14,11 +14,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@google/genai": "^1.50.1",
     "@iconify/react": "^4.1.1",
     "@tailwindcss/vite": "^4.2.4",
     "idb": "^8.0.3",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-responsive-masonry": "^2.7.2"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",

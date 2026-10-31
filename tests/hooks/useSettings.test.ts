@@ -19,10 +19,10 @@ describe('useSettings', () => {
     const { result } = renderHook(() => useSettings());
 
     expect(result.current.isLoading).toBe(true);
-    expect(result.current.settings).toEqual({ model: 'nano-banana2', apiKey: '' });
+    expect(result.current.settings).toEqual({ model: 'gemini-3.1-flash-image-preview', apiKey: '' });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.settings).toEqual({ model: 'nano-banana2', apiKey: '' });
+    expect(result.current.settings).toEqual({ model: 'gemini-3.1-flash-image-preview', apiKey: '' });
   });
 
   it('有已儲存設定時載入它', async () => {
@@ -32,6 +32,15 @@ describe('useSettings', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.settings).toEqual({ model: 'm', apiKey: 'k' });
+  });
+
+  it('已儲存設定缺少 model 時回退為預設模型', async () => {
+    settingsServiceMock.loadSettings.mockResolvedValue({ model: '', apiKey: 'k' });
+
+    const { result } = renderHook(() => useSettings());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.settings).toEqual({ model: 'gemini-3.1-flash-image-preview', apiKey: 'k' });
   });
 
   it('載入失敗時設定 error', async () => {
@@ -58,7 +67,7 @@ describe('useSettings', () => {
 
     act(() => result.current.updateSettings({ apiKey: 'new' }));
 
-    expect(result.current.settings).toEqual({ model: 'nano-banana2', apiKey: 'new' });
+    expect(result.current.settings).toEqual({ model: 'gemini-3.1-flash-image-preview', apiKey: 'new' });
     expect(settingsServiceMock.saveSettings).not.toHaveBeenCalled();
   });
 
@@ -85,6 +94,6 @@ describe('useSettings', () => {
 
     expect(result.current.error?.message).toBe('disk full');
     expect(result.current.isSaving).toBe(false);
-    expect(result.current.settings).toEqual({ model: 'nano-banana2', apiKey: '' });
+    expect(result.current.settings).toEqual({ model: 'gemini-3.1-flash-image-preview', apiKey: '' });
   });
 });

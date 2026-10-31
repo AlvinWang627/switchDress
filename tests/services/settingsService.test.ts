@@ -17,7 +17,7 @@ describe('settingsService', () => {
   it('saveSettings 寫入 user-settings，loadSettings 可讀回', async () => {
     const { data } = installChromeMock();
     const { saveSettings, loadSettings } = await import('@/services/settingsService');
-    const settings = { model: 'nano-banana2', apiKey: 'secret' };
+    const settings = { model: 'gemini-3.1-flash-image-preview', apiKey: 'secret' };
 
     await saveSettings(settings);
 

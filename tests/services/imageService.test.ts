@@ -61,9 +61,42 @@ describe('imageService', () => {
     expect(await svc.getAllImages()).toEqual([]);
   });
 
+  describe('updateImage', () => {
+    it('合併更新欄位並保留其餘欄位', async () => {
+      await svc.saveImage(makeRecord('a', { timestamp: 5, isFavorite: false }));
+
+      await svc.updateImage('a', { isFavorite: true });
+
+      const got = await svc.getImage('a');
+      expect(got?.isFavorite).toBe(true);
+      expect(got?.timestamp).toBe(5);
+    });
+
+    it('紀錄不存在時不會新增', async () => {
+      await svc.updateImage('missing', { isFavorite: true });
+      expect(await svc.getAllImages()).toEqual([]);
+    });
+  });
+
+  it('getAllImagesSorted 依時間新到舊排序', async () => {
+    await svc.saveImage(makeRecord('old', { timestamp: 1 }));
+    await svc.saveImage(makeRecord('new', { timestamp: 3 }));
+    await svc.saveImage(makeRecord('mid', { timestamp: 2 }));
+
+    expect((await svc.getAllImagesSorted()).map((r) => r.id)).toEqual(['new', 'mid', 'old']);
+  });
+
   it('imageService 物件暴露全部方法', () => {
     expect(Object.keys(svc.imageService).sort()).toEqual(
-      ['clearAllImages', 'deleteImage', 'getAllImages', 'getImage', 'saveImage'].sort()
+      [
+        'clearAllImages',
+        'deleteImage',
+        'getAllImages',
+        'getAllImagesSorted',
+        'getImage',
+        'saveImage',
+        'updateImage',
+      ].sort()
     );
   });
 });

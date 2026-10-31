@@ -1,0 +1,13 @@
+@import 'tailwindcss';
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: #f9fafb;
+  dark-background-color: #111827;
+}
+
+.dark body {
+  background-color: #111827;
+}

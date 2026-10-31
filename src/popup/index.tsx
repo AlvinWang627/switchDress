@@ -1,17 +1,19 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Icon } from '@iconify/react';
-import { useImageStorage } from '@/hooks/useImageStorage';
 import { useScreenshot } from '@/hooks/useScreenshot';
+import { usePersonalPhoto } from '@/hooks/usePersonalPhoto';
+import { useSettings } from '@/hooks/useSettings';
+import { useAISynthesis, type SynthesisStatus } from '@/hooks/useAISynthesis';
+import { useNotification } from '@/hooks/useNotification';
 
 import ScreenshotPreview from '@/components/ScreenshotPreview';
+import PersonalPhotoSelector from '@/components/PersonalPhotoSelector';
 import styles from './index.css?inline';
 
 const styleElement = document.createElement('style');
 styleElement.innerHTML = styles;
 document.head.appendChild(styleElement);
-
-import type { ImageRecord } from '@/types/popup';
 
 interface HeaderProps {
   onAlbumClick: () => void;
@@ -78,114 +80,70 @@ function ClothingAreaCard({ screenshotBlob, onDeleteScreenshot }: ClothingAreaCa
   );
 }
 
-interface PhotoOptionProps {
-  image: ImageRecord;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
-}
+function AIActionButton({
+  disabled,
+  status,
+  onClick,
+}: {
+  disabled: boolean;
+  status: SynthesisStatus;
+  onClick: () => void;
+}) {
+  const getButtonContent = () => {
+    switch (status) {
+      case 'synthesizing':
+        return (
+          <>
+            <Icon icon="mdi:loading" className="animate-spin mr-2" width={20} height={20} />
+            合成中...
+          </>
+        );
+      case 'success':
+        return (
+          <>
+            <Icon icon="mdi:check" className="mr-2" width={20} height={20} />
+            合成完成
+          </>
+        );
+      case 'error':
+        return (
+          <>
+            <Icon icon="mdi:alert-circle" className="mr-2" width={20} height={20} />
+            合成失敗
+          </>
+        );
+      default:
+        return 'AI 合成';
+    }
+  };
 
-function PhotoOption({ image, isSelected, onSelect }: PhotoOptionProps) {
-  const handleClick = () => onSelect(image.id);
-
-  return (
-    <div
-      className={`relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer transition-all p-1 ${
-        isSelected ? 'border-2 border-[#1a73e8]' : 'border border-gray-200 dark:border-gray-700'
-      }`}
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && handleClick()}
-    >
-      <div className="w-full h-full rounded-lg overflow-hidden">
-        <img
-          src={
-            image.thumbnail ? URL.createObjectURL(image.thumbnail) : URL.createObjectURL(image.blob)
-          }
-          alt="Portrait"
-          className="w-full h-full object-cover"
-        />
-      </div>
-      {isSelected && (
-        <div className="absolute top-1 right-1 bg-[#1a73e8] text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
-          <Icon icon="mdi:check" width={14} height={14} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface PersonalPhotoSectionProps {
-  images: ImageRecord[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-  onSettingsClick: () => void;
-}
-
-function PersonalPhotoSection({
-  images,
-  selectedId,
-  onSelect,
-  onSettingsClick,
-}: PersonalPhotoSectionProps) {
-  if (images.length === 0) {
-    return (
-      <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-8 flex flex-col items-center gap-4 shadow-sm text-center">
-        <div className="space-y-2">
-          <h2 className="font-headline-sm text-headline-sm text-gray-900 dark:text-gray-100 font-medium">
-            尚未上傳相片
-          </h2>
-        </div>
-        <button
-          onClick={onSettingsClick}
-          className="mt-2 text-[#1a73e8] font-label-md hover:opacity-70 transition-opacity flex items-center gap-1"
-        >
-          前往設定 <Icon icon="mdi:chevron-right" />
-        </button>
-      </section>
-    );
-  }
-
-  return (
-    <section className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 flex flex-col items-center gap-6 shadow-sm">
-      <h2 className="font-label-lg text-label-lg text-gray-900 dark:text-gray-100 font-medium">
-        請選擇個人照片
-      </h2>
-      <div
-        className={
-          images.length === 1 ? 'flex justify-center w-full' : 'grid grid-cols-3 gap-3 w-full'
-        }
-      >
-        {images.slice(0, 6).map((image) => (
-          <div key={image.id} className={images.length === 1 ? 'w-1/3' : ''}>
-            <PhotoOption image={image} isSelected={image.id === selectedId} onSelect={onSelect} />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function AIActionButton({ disabled }: { disabled: boolean }) {
   return (
     <div className="bottom-0 left-0 right-0 p-6 dark:bg-gray-950/90 backdrop-blur-sm flex justify-center z-40 max-w-lg mx-auto">
       <button
-        disabled={disabled}
+        disabled={disabled || status === 'synthesizing'}
+        onClick={onClick}
         className="w-full text-black font-label-lg text-label-lg py-4 px-6 rounded-full flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-[0_4px_15px_rgba(26,115,232,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        AI 合成
+        {getButtonContent()}
       </button>
     </div>
   );
 }
 
 function PopupApp() {
-  const { images, isLoading } = useImageStorage();
   const { screenshots, capture, remove } = useScreenshot();
-  const [selectedPhotoId, setSelectedPhotoId] = React.useState<string | null>(null);
+  const { photos, selectedPhoto, isLoading, selectPhoto } = usePersonalPhoto();
+  const { settings } = useSettings();
+  const { status, synthesize, reset } = useAISynthesis();
+  const { showSynthesisComplete, showError } = useNotification();
 
   const handleAlbumClick = () => {
     console.log('Album clicked');
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+      chrome.tabs.create({ url: chrome.runtime.getURL('gallery/index.html') });
+    } else {
+      window.open('/src/gallery/index.html', '_blank');
+    }
   };
 
   const handleCameraClick = () => {
@@ -212,15 +170,34 @@ function PopupApp() {
     }
   };
 
-  const handlePhotoSelect = (id: string) => {
-    setSelectedPhotoId(id);
+  const handleAISynthesize = async () => {
+    if (!selectedPhoto || !screenshots[0]) return;
+
+    try {
+      await synthesize(
+        selectedPhoto.blob,
+        screenshots[0].blob,
+        settings.apiKey,
+        settings.model
+      );
+    } catch (e) {
+      console.error('Synthesis failed', e);
+    }
   };
 
+  // Handle status changes
   React.useEffect(() => {
-    if (images.length === 1 && !selectedPhotoId) {
-      setSelectedPhotoId(images[0].id);
+    if (status === 'success') {
+      showSynthesisComplete();
+      // Reset to idle after a short delay
+      setTimeout(() => reset(), 2000);
+    } else if (status === 'error') {
+      showError('AI合成失敗，請重試');
+      setTimeout(() => reset(), 3000);
     }
-  }, [images, selectedPhotoId]);
+  }, [status, showSynthesisComplete, showError, reset]);
+
+  const canSynthesize = selectedPhoto && screenshots[0] && settings.apiKey;
 
   return (
     <div className="w-full max-w-lg mx-auto min-h-screen flex flex-col bg-background">
@@ -238,17 +215,18 @@ function PopupApp() {
 
         {/* ScreenshotOverlay is now rendered in the content script directly on the webpage */}
 
-        {isLoading ? (
-          <div className="text-center text-sm text-gray-500">載入中...</div>
-        ) : (
-          <PersonalPhotoSection
-            images={images}
-            selectedId={selectedPhotoId}
-            onSelect={handlePhotoSelect}
-            onSettingsClick={handleSettingsClick}
-          />
-        )}
-        <AIActionButton disabled={!selectedPhotoId} />
+        <PersonalPhotoSelector
+          photos={photos}
+          selectedId={selectedPhoto?.id ?? null}
+          onSelect={selectPhoto}
+          onSettingsClick={handleSettingsClick}
+          isLoading={isLoading}
+        />
+        <AIActionButton
+          disabled={!canSynthesize}
+          status={status}
+          onClick={handleAISynthesize}
+        />
       </main>
     </div>
   );

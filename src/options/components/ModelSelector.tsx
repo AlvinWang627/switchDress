@@ -6,7 +6,10 @@ interface ModelSelectorProps {
   disabled?: boolean;
 }
 
-const MODELS = [{ value: 'nano-banana2', label: 'Nano banana2' }];
+const MODELS = [
+  { value: 'gemini-3.1-flash-image-preview', label: 'gemini-3.1-flash-image-preview' },
+  { value: 'gemini-2.5-flash-image', label: 'gemini-2.5-flash-image' }
+];
 
 export function ModelSelector({ value, onChange, disabled }: ModelSelectorProps) {
   return (

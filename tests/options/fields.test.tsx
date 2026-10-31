@@ -41,19 +41,31 @@ describe('ApiKeyInput', () => {
 
 describe('ModelSelector', () => {
   it('顯示目前選擇的模型與可用選項', () => {
-    render(<ModelSelector value="nano-banana2" onChange={() => {}} />);
+    render(<ModelSelector value="gemini-3.1-flash-image-preview" onChange={() => {}} />);
     const select = screen.getByLabelText('模型');
-    expect(select).toHaveValue('nano-banana2');
-    expect(screen.getByRole('option', { name: 'Nano banana2' })).toBeInTheDocument();
+    expect(select).toHaveValue('gemini-3.1-flash-image-preview');
+    expect(screen.getByRole('option', { name: 'gemini-3.1-flash-image-preview' })).toBeInTheDocument();
   });
 
-  it('目前只提供一個模型選項', () => {
-    render(<ModelSelector value="nano-banana2" onChange={() => {}} />);
-    expect(screen.getAllByRole('option')).toHaveLength(1);
+  it('提供兩個模型選項', () => {
+    render(<ModelSelector value="gemini-3.1-flash-image-preview" onChange={() => {}} />);
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'gemini-3.1-flash-image-preview',
+      'gemini-2.5-flash-image',
+    ]);
+  });
+
+  it('變更選項時回報新的模型', () => {
+    const onChange = vi.fn();
+    render(<ModelSelector value="gemini-3.1-flash-image-preview" onChange={onChange} />);
+
+    fireEvent.change(screen.getByLabelText('模型'), { target: { value: 'gemini-2.5-flash-image' } });
+
+    expect(onChange).toHaveBeenCalledWith('gemini-2.5-flash-image');
   });
 
   it('disabled 時停用選單', () => {
-    render(<ModelSelector value="nano-banana2" onChange={() => {}} disabled />);
+    render(<ModelSelector value="gemini-3.1-flash-image-preview" onChange={() => {}} disabled />);
     expect(screen.getByLabelText('模型')).toBeDisabled();
   });
 });

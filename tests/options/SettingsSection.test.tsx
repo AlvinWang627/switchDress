@@ -7,7 +7,7 @@ vi.mock('@/hooks/useSettings', () => ({ useSettings: useSettingsMock }));
 import { SettingsSection } from '@/options/components/SettingsSection';
 
 const hookState = (overrides: Record<string, unknown> = {}) => ({
-  settings: { model: 'nano-banana2', apiKey: '' },
+  settings: { model: 'gemini-3.1-flash-image-preview', apiKey: '' },
   isLoading: false,
   isSaving: false,
   error: null,
@@ -32,12 +32,12 @@ describe('SettingsSection', () => {
   });
 
   it('以已儲存的設定初始化表單', () => {
-    useSettingsMock.mockReturnValue(hookState({ settings: { model: 'nano-banana2', apiKey: 'saved-key' } }));
+    useSettingsMock.mockReturnValue(hookState({ settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'saved-key' } }));
     render(<SettingsSection />);
 
     expect(screen.getByText('模型設定')).toBeInTheDocument();
     expect(screen.getByLabelText('API Key')).toHaveValue('saved-key');
-    expect(screen.getByLabelText('模型')).toHaveValue('nano-banana2');
+    expect(screen.getByLabelText('模型')).toHaveValue('gemini-3.1-flash-image-preview');
   });
 
   describe('儲存按鈕狀態', () => {
@@ -67,7 +67,7 @@ describe('SettingsSection', () => {
 
     it('儲存中顯示「儲存中...」並停用所有欄位', () => {
       useSettingsMock.mockReturnValue(
-        hookState({ isSaving: true, settings: { model: 'nano-banana2', apiKey: 'abc' } })
+        hookState({ isSaving: true, settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'abc' } })
       );
       render(<SettingsSection />);
 
@@ -89,13 +89,13 @@ describe('SettingsSection', () => {
       fireEvent.click(saveButton());
 
       expect(await screen.findByText('設定已儲存')).toBeInTheDocument();
-      expect(state.saveSettings).toHaveBeenCalledWith({ model: 'nano-banana2', apiKey: 'my-key' });
+      expect(state.saveSettings).toHaveBeenCalledWith({ model: 'gemini-3.1-flash-image-preview', apiKey: 'my-key' });
       expect(onSaveSuccess).toHaveBeenCalled();
     });
 
     it('失敗：顯示錯誤提示並呼叫 onSaveError', async () => {
       const state = hookState({
-        settings: { model: 'nano-banana2', apiKey: 'k' },
+        settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'k' },
         saveSettings: vi.fn().mockRejectedValue(new Error('disk full')),
       });
       useSettingsMock.mockReturnValue(state);
@@ -111,7 +111,7 @@ describe('SettingsSection', () => {
     it('失敗且不是 Error 時以預設錯誤回報', async () => {
       useSettingsMock.mockReturnValue(
         hookState({
-          settings: { model: 'nano-banana2', apiKey: 'k' },
+          settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'k' },
           saveSettings: vi.fn().mockRejectedValue('x'),
         })
       );
@@ -125,7 +125,7 @@ describe('SettingsSection', () => {
     });
 
     it('提示在 3 秒後消失', async () => {
-      useSettingsMock.mockReturnValue(hookState({ settings: { model: 'nano-banana2', apiKey: 'k' } }));
+      useSettingsMock.mockReturnValue(hookState({ settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'k' } }));
       const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
       render(<SettingsSection />);
 
@@ -144,7 +144,7 @@ describe('SettingsSection', () => {
     useSettingsMock.mockReturnValue(hookState());
     const { rerender } = render(<SettingsSection />);
 
-    useSettingsMock.mockReturnValue(hookState({ settings: { model: 'nano-banana2', apiKey: 'loaded-later' } }));
+    useSettingsMock.mockReturnValue(hookState({ settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'loaded-later' } }));
     rerender(<SettingsSection />);
 
     expect(screen.getByLabelText('API Key')).toHaveValue('loaded-later');

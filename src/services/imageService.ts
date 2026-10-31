@@ -55,10 +55,29 @@ export async function clearAllImages(): Promise<void> {
   await db.clear(DB_CONFIG.storeName);
 }
 
+export async function updateImage(
+  id: string,
+  updates: Partial<ImageRecord>
+): Promise<void> {
+  const db = await getDB();
+  const existing = await db.get(DB_CONFIG.storeName, id);
+  if (existing) {
+    await db.put(DB_CONFIG.storeName, { ...existing, ...updates });
+  }
+}
+
+export async function getAllImagesSorted(): Promise<ImageRecord[]> {
+  const db = await getDB();
+  const images = await db.getAll(DB_CONFIG.storeName);
+  return images.sort((a, b) => b.timestamp - a.timestamp);
+}
+
 export const imageService = {
   saveImage,
   getImage,
   getAllImages,
   deleteImage,
   clearAllImages,
+  updateImage,
+  getAllImagesSorted,
 };

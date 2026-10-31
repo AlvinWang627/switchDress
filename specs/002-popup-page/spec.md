@@ -105,7 +105,6 @@ Use a utility like `curl -L` to download the hosted URLs. 建立popup頁面"
 - 相機圖示代表拍攝相片的主要動作
 - 深色模式主題（#0d7ff2 主色）適合此擴充功能
 - 彈出視窗高度將受到 Chrome 預設限制
-- 基於 Stitch 專案設定（704x1520px 手機版面）採用手機優先設計方法
 
 ## Clarifications
 
