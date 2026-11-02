@@ -1,7 +1,7 @@
 // Background service worker for switch-dress Chrome Extension
 import { MESSAGE_TYPES, type ChromeMessage } from '@/types/message';
 import { imageService } from '@/services/imageService';
-import { geminiService } from '@/services/geminiService';
+import { synthesizeImage } from '@/services/imageProviders';
 import { notificationService } from '@/services/notificationService';
 import type { ImageRecord } from '@/types/popup';
 
@@ -79,16 +79,12 @@ chrome.runtime.onMessage.addListener((message: ChromeMessage, _sender, sendRespo
       console.log('[background] AI_SYNTHESIZE received');
       (async () => {
         try {
-          // Convert data URL to Blob
-          const response = await fetch(personalPhotoDataUrl);
-          const personalPhotoBlob = await response.blob();
-
-          const result = await geminiService.synthesizeImage(
-            personalPhotoBlob,
-            clothingDataUrl,
-            apiKey,
-            model
+          // Convert data URLs to Blobs
+          const [personalPhotoBlob, clothingBlob] = await Promise.all(
+            [personalPhotoDataUrl, clothingDataUrl].map(async (url) => (await fetch(url)).blob())
           );
+
+          const result = await synthesizeImage(personalPhotoBlob, clothingBlob, apiKey, model);
 
           if (result.success && result.imageBlob) {
             // Save to gallery (thumbnail creation skipped in background - Service Worker has no Canvas API)

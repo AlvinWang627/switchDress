@@ -58,13 +58,19 @@ describe('background service worker', () => {
       const images = [{ id: 'a' }];
       imageServiceMock.getAllImages.mockResolvedValue(images);
 
-      expect(await send({ type: MESSAGE_TYPES.GET_IMAGES })).toEqual({ success: true, data: images });
+      expect(await send({ type: MESSAGE_TYPES.GET_IMAGES })).toEqual({
+        success: true,
+        data: images,
+      });
     });
 
     it('失敗時回傳錯誤訊息', async () => {
       imageServiceMock.getAllImages.mockRejectedValue(new Error('db down'));
 
-      expect(await send({ type: MESSAGE_TYPES.GET_IMAGES })).toEqual({ success: false, error: 'db down' });
+      expect(await send({ type: MESSAGE_TYPES.GET_IMAGES })).toEqual({
+        success: false,
+        error: 'db down',
+      });
     });
   });
 
@@ -87,7 +93,10 @@ describe('background service worker', () => {
     it('儲存失敗時回傳錯誤', async () => {
       imageServiceMock.saveImage.mockRejectedValue(new Error('quota'));
 
-      const res = await send({ type: MESSAGE_TYPES.SAVE_IMAGE, payload: { blob: new Blob(['x']) } });
+      const res = await send({
+        type: MESSAGE_TYPES.SAVE_IMAGE,
+        payload: { blob: new Blob(['x']) },
+      });
 
       expect(res).toEqual({ success: false, error: 'quota' });
     });
@@ -150,6 +159,7 @@ describe('background service worker', () => {
 
   describe('AI_SYNTHESIZE', () => {
     const personalBlob = new Blob(['person']);
+    const clothingBlob = new Blob(['clothing']);
     const payload = {
       personalPhotoDataUrl: 'data:image/png;base64,AAA',
       clothingDataUrl: 'data:image/png;base64,BBB',
@@ -159,7 +169,15 @@ describe('background service worker', () => {
     const generated = new Blob(['result'], { type: 'image/png' });
 
     beforeEach(() => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ blob: () => Promise.resolve(personalBlob) }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((url: string) =>
+          Promise.resolve({
+            blob: () =>
+              Promise.resolve(url === payload.personalPhotoDataUrl ? personalBlob : clothingBlob),
+          })
+        )
+      );
       imageServiceMock.saveImage.mockResolvedValue(undefined);
     });
 
@@ -167,15 +185,16 @@ describe('background service worker', () => {
       vi.unstubAllGlobals();
     });
 
-    it('成功：把 data URL 轉成 Blob 後合成、存入相片集、發出完成通知', async () => {
+    it('成功：把兩張圖的 data URL 都轉成 Blob 後合成、存入相片集、發出完成通知', async () => {
       geminiServiceMock.synthesizeImage.mockResolvedValue({ success: true, imageBlob: generated });
 
       const res = await send({ type: MESSAGE_TYPES.AI_SYNTHESIZE, payload });
 
       expect(fetch).toHaveBeenCalledWith(payload.personalPhotoDataUrl);
+      expect(fetch).toHaveBeenCalledWith(payload.clothingDataUrl);
       expect(geminiServiceMock.synthesizeImage).toHaveBeenCalledWith(
         personalBlob,
-        payload.clothingDataUrl,
+        clothingBlob,
         'key',
         'gemini-3.1-flash-image-preview'
       );
@@ -188,7 +207,10 @@ describe('background service worker', () => {
     });
 
     it('合成失敗：發出錯誤通知、不存檔，並回傳錯誤訊息', async () => {
-      geminiServiceMock.synthesizeImage.mockResolvedValue({ success: false, error: 'API error: 403' });
+      geminiServiceMock.synthesizeImage.mockResolvedValue({
+        success: false,
+        error: 'API error: 403',
+      });
 
       const res = await send({ type: MESSAGE_TYPES.AI_SYNTHESIZE, payload });
 

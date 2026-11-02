@@ -1,17 +1,15 @@
 import { Icon } from '@iconify/react';
+import type { ModelOption } from '@/types/provider';
 
 interface ModelSelectorProps {
   value: string;
   onChange: (model: string) => void;
+  /** 可選模型（通常為目前供應商的模型清單） */
+  models: ModelOption[];
   disabled?: boolean;
 }
 
-const MODELS = [
-  { value: 'gemini-3.1-flash-image-preview', label: 'gemini-3.1-flash-image-preview' },
-  { value: 'gemini-2.5-flash-image', label: 'gemini-2.5-flash-image' }
-];
-
-export function ModelSelector({ value, onChange, disabled }: ModelSelectorProps) {
+export function ModelSelector({ value, onChange, models, disabled }: ModelSelectorProps) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
@@ -25,7 +23,7 @@ export function ModelSelector({ value, onChange, disabled }: ModelSelectorProps)
           disabled={disabled}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
-          {MODELS.map((model) => (
+          {models.map((model) => (
             <option key={model.value} value={model.value}>
               {model.label}
             </option>

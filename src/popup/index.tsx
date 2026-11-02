@@ -6,6 +6,7 @@ import { usePersonalPhoto } from '@/hooks/usePersonalPhoto';
 import { useSettings } from '@/hooks/useSettings';
 import { useAISynthesis, type SynthesisStatus } from '@/hooks/useAISynthesis';
 import { useNotification } from '@/hooks/useNotification';
+import { getApiKey } from '@/services/imageProviders';
 
 import ScreenshotPreview from '@/components/ScreenshotPreview';
 import PersonalPhotoSelector from '@/components/PersonalPhotoSelector';
@@ -134,6 +135,7 @@ function PopupApp() {
   const { screenshots, capture, remove } = useScreenshot();
   const { photos, selectedPhoto, isLoading, selectPhoto } = usePersonalPhoto();
   const { settings } = useSettings();
+  const apiKey = getApiKey(settings);
   const { status, synthesize, reset } = useAISynthesis();
   const { showSynthesisComplete, showError } = useNotification();
 
@@ -177,7 +179,7 @@ function PopupApp() {
       await synthesize(
         selectedPhoto.blob,
         screenshots[0].blob,
-        settings.apiKey,
+        apiKey,
         settings.model
       );
     } catch (e) {
@@ -197,7 +199,7 @@ function PopupApp() {
     }
   }, [status, showSynthesisComplete, showError, reset]);
 
-  const canSynthesize = selectedPhoto && screenshots[0] && settings.apiKey;
+  const canSynthesize = selectedPhoto && screenshots[0] && apiKey;
 
   return (
     <div className="w-full max-w-lg mx-auto min-h-screen flex flex-col bg-background">

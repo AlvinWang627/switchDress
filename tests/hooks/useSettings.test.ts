@@ -19,28 +19,37 @@ describe('useSettings', () => {
     const { result } = renderHook(() => useSettings());
 
     expect(result.current.isLoading).toBe(true);
-    expect(result.current.settings).toEqual({ model: 'gemini-3.1-flash-image-preview', apiKey: '' });
+    expect(result.current.settings).toEqual({
+      model: 'gemini-3.1-flash-image-preview',
+      apiKeys: {},
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.settings).toEqual({ model: 'gemini-3.1-flash-image-preview', apiKey: '' });
+    expect(result.current.settings).toEqual({
+      model: 'gemini-3.1-flash-image-preview',
+      apiKeys: {},
+    });
   });
 
   it('有已儲存設定時載入它', async () => {
-    settingsServiceMock.loadSettings.mockResolvedValue({ model: 'm', apiKey: 'k' });
+    settingsServiceMock.loadSettings.mockResolvedValue({ model: 'm', apiKeys: { gemini: 'k' } });
 
     const { result } = renderHook(() => useSettings());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.settings).toEqual({ model: 'm', apiKey: 'k' });
+    expect(result.current.settings).toEqual({ model: 'm', apiKeys: { gemini: 'k' } });
   });
 
   it('已儲存設定缺少 model 時回退為預設模型', async () => {
-    settingsServiceMock.loadSettings.mockResolvedValue({ model: '', apiKey: 'k' });
+    settingsServiceMock.loadSettings.mockResolvedValue({ model: '', apiKeys: { gemini: 'k' } });
 
     const { result } = renderHook(() => useSettings());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.settings).toEqual({ model: 'gemini-3.1-flash-image-preview', apiKey: 'k' });
+    expect(result.current.settings).toEqual({
+      model: 'gemini-3.1-flash-image-preview',
+      apiKeys: { gemini: 'k' },
+    });
   });
 
   it('載入失敗時設定 error', async () => {
@@ -65,9 +74,12 @@ describe('useSettings', () => {
     const { result } = renderHook(() => useSettings());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    act(() => result.current.updateSettings({ apiKey: 'new' }));
+    act(() => result.current.updateSettings({ apiKeys: { gemini: 'new' } }));
 
-    expect(result.current.settings).toEqual({ model: 'gemini-3.1-flash-image-preview', apiKey: 'new' });
+    expect(result.current.settings).toEqual({
+      model: 'gemini-3.1-flash-image-preview',
+      apiKeys: { gemini: 'new' },
+    });
     expect(settingsServiceMock.saveSettings).not.toHaveBeenCalled();
   });
 
@@ -75,10 +87,13 @@ describe('useSettings', () => {
     const { result } = renderHook(() => useSettings());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(() => result.current.saveSettings({ model: 'm', apiKey: 'k' }));
+    await act(() => result.current.saveSettings({ model: 'm', apiKeys: { gemini: 'k' } }));
 
-    expect(settingsServiceMock.saveSettings).toHaveBeenCalledWith({ model: 'm', apiKey: 'k' });
-    expect(result.current.settings).toEqual({ model: 'm', apiKey: 'k' });
+    expect(settingsServiceMock.saveSettings).toHaveBeenCalledWith({
+      model: 'm',
+      apiKeys: { gemini: 'k' },
+    });
+    expect(result.current.settings).toEqual({ model: 'm', apiKeys: { gemini: 'k' } });
     expect(result.current.isSaving).toBe(false);
     expect(result.current.error).toBeNull();
   });
@@ -89,11 +104,16 @@ describe('useSettings', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     await act(async () => {
-      await expect(result.current.saveSettings({ model: 'm', apiKey: 'k' })).rejects.toThrow('disk full');
+      await expect(
+        result.current.saveSettings({ model: 'm', apiKeys: { gemini: 'k' } })
+      ).rejects.toThrow('disk full');
     });
 
     expect(result.current.error?.message).toBe('disk full');
     expect(result.current.isSaving).toBe(false);
-    expect(result.current.settings).toEqual({ model: 'gemini-3.1-flash-image-preview', apiKey: '' });
+    expect(result.current.settings).toEqual({
+      model: 'gemini-3.1-flash-image-preview',
+      apiKeys: {},
+    });
   });
 });

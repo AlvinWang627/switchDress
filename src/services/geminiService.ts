@@ -1,23 +1,13 @@
+import type { SynthesisResult } from '@/types/provider';
+import { base64ToBlob, blobToDataUrl, dataUrlToBase64 } from '@/utils/blob';
+import { TRY_ON_PROMPT } from './prompts';
+
 const API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-export interface SynthesisResult {
-  success: boolean;
-  imageBlob?: Blob;
-  error?: string;
-}
+export type { SynthesisResult };
 
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      // Remove data URL prefix to get just the base64 part
-      const base64 = result.split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+async function blobToBase64(blob: Blob): Promise<string> {
+  return dataUrlToBase64(await blobToDataUrl(blob));
 }
 
 export async function synthesizeImage(
@@ -43,7 +33,7 @@ export async function synthesizeImage(
           {
             parts: [
               {
-                text: 'Virtual try-on: Put the clothing from image A onto the person in image B. The clothing should naturally drape on the person while preserving the person\'s facial features and body structure.',
+                text: TRY_ON_PROMPT,
               },
               {
                 inline_data: {
@@ -87,18 +77,10 @@ export async function synthesizeImage(
       for (const part of parts) {
         const inlineData = part.inline_data || part.inlineData;
         if (inlineData && inlineData.data) {
-          const imageData = inlineData.data;
           const mimeType = inlineData.mime_type || inlineData.mimeType || 'image/png';
-          const byteCharacters = atob(imageData);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const imageBlob = new Blob([byteArray], { type: mimeType });
           return {
             success: true,
-            imageBlob,
+            imageBlob: base64ToBlob(inlineData.data, mimeType),
           };
         }
       }

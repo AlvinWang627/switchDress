@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { geminiService } from '@/services/geminiService';
+import { synthesizeImage } from '@/services/imageProviders';
 import { imageService } from '@/services/imageService';
 import type { ImageRecord } from '@/types/popup';
 
@@ -32,12 +32,7 @@ export function useAISynthesis(): UseAISynthesisReturn {
         setStatus('synthesizing');
         setError(null);
 
-        const result = await geminiService.synthesizeImage(
-          personalPhotoBlob,
-          clothingBlob,
-          apiKey,
-          model
-        );
+        const result = await synthesizeImage(personalPhotoBlob, clothingBlob, apiKey, model);
 
         if (result.success && result.imageBlob) {
           // Save to gallery
@@ -74,4 +69,3 @@ export function useAISynthesis(): UseAISynthesisReturn {
     reset,
   };
 }
-
