@@ -62,13 +62,15 @@ const notificationState = () => ({
   showError: vi.fn(),
 });
 
-const SETTINGS = { model: 'gemini-3.1-flash-image-preview', apiKey: 'key' };
+const SETTINGS = { model: 'gemini-3.1-flash-image-preview', apiKeys: { gemini: 'key' } };
 
 /** 具備合成所需的全部條件：已選照片、已有截圖、已設定 API Key */
 const readyToSynthesize = () => {
   const selected = photo('a');
   const clothing = new Blob(['shirt']);
-  mocks.usePersonalPhoto.mockReturnValue(photoState({ photos: [selected], selectedPhoto: selected }));
+  mocks.usePersonalPhoto.mockReturnValue(
+    photoState({ photos: [selected], selectedPhoto: selected })
+  );
   mocks.useScreenshot.mockReturnValue(screenshotState({ screenshots: [{ blob: clothing }] }));
   return { selected, clothing };
 };
@@ -114,13 +116,18 @@ describe('PopupApp', () => {
 
     it('相簿按鈕：擴充環境以 tabs.create 開啟 gallery 頁', () => {
       const { chrome } = installChromeMock();
-      Object.assign(chrome.runtime, { id: 'ext', getURL: vi.fn((p: string) => `chrome-extension://ext/${p}`) });
+      Object.assign(chrome.runtime, {
+        id: 'ext',
+        getURL: vi.fn((p: string) => `chrome-extension://ext/${p}`),
+      });
       Object.assign(chrome.tabs, { create: vi.fn() });
       render(<PopupApp />);
 
       fireEvent.click(screen.getByLabelText('Album'));
 
-      expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://ext/gallery/index.html' });
+      expect(chrome.tabs.create).toHaveBeenCalledWith({
+        url: 'chrome-extension://ext/gallery/index.html',
+      });
     });
 
     it('相簿按鈕：非擴充環境以 window.open 開啟開發用網址', () => {
@@ -214,7 +221,11 @@ describe('PopupApp', () => {
     it.each([
       ['沒有選照片', () => mocks.usePersonalPhoto.mockReturnValue(photoState())],
       ['沒有截圖', () => mocks.useScreenshot.mockReturnValue(screenshotState())],
-      ['沒有 API Key', () => mocks.useSettings.mockReturnValue({ settings: { ...SETTINGS, apiKey: '' } })],
+      [
+        '沒有 API Key',
+        () =>
+          mocks.useSettings.mockReturnValue({ settings: { ...SETTINGS, apiKeys: { gemini: '' } } }),
+      ],
     ])('%s時停用', (_label, breakCondition) => {
       readyToSynthesize();
       breakCondition();
@@ -237,12 +248,19 @@ describe('PopupApp', () => {
 
       fireEvent.click(aiButton());
 
-      expect(synthesis.synthesize).toHaveBeenCalledWith(selected.blob, clothing, 'key', 'gemini-3.1-flash-image-preview');
+      expect(synthesis.synthesize).toHaveBeenCalledWith(
+        selected.blob,
+        clothing,
+        'key',
+        'gemini-3.1-flash-image-preview'
+      );
     });
 
     it('synthesize 拋出例外時只記錄錯誤、不讓畫面崩潰', async () => {
       readyToSynthesize();
-      mocks.useAISynthesis.mockReturnValue(synthesisState({ synthesize: vi.fn().mockRejectedValue(new Error('boom')) }));
+      mocks.useAISynthesis.mockReturnValue(
+        synthesisState({ synthesize: vi.fn().mockRejectedValue(new Error('boom')) })
+      );
       render(<PopupApp />);
 
       await act(async () => {
@@ -364,7 +382,9 @@ describe('PopupApp', () => {
 
       fireEvent.click(screen.getByLabelText('Settings'));
 
-      expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://ext/options/index.html' });
+      expect(chrome.tabs.create).toHaveBeenCalledWith({
+        url: 'chrome-extension://ext/options/index.html',
+      });
     });
 
     it('沒有 openOptionsPage 時直接以 tabs.create 開新分頁', () => {
@@ -378,7 +398,9 @@ describe('PopupApp', () => {
 
       fireEvent.click(screen.getByLabelText('Settings'));
 
-      expect(chrome.tabs.create).toHaveBeenCalledWith({ url: 'chrome-extension://ext/options/index.html' });
+      expect(chrome.tabs.create).toHaveBeenCalledWith({
+        url: 'chrome-extension://ext/options/index.html',
+      });
     });
 
     it('「前往設定」按鈕與標題列設定鈕行為一致', () => {

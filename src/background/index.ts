@@ -1,7 +1,7 @@
 // Background service worker for switch-dress Chrome Extension
 import { MESSAGE_TYPES, type ChromeMessage } from '@/types/message';
 import { imageService } from '@/services/imageService';
-import { geminiService } from '@/services/geminiService';
+import { synthesizeImage } from '@/services/imageProviders';
 import { notificationService } from '@/services/notificationService';
 import type { ImageRecord } from '@/types/popup';
 
@@ -83,7 +83,7 @@ chrome.runtime.onMessage.addListener((message: ChromeMessage, _sender, sendRespo
           const response = await fetch(personalPhotoDataUrl);
           const personalPhotoBlob = await response.blob();
 
-          const result = await geminiService.synthesizeImage(
+          const result = await synthesizeImage(
             personalPhotoBlob,
             clothingDataUrl,
             apiKey,

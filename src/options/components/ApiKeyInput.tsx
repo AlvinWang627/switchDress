@@ -5,9 +5,11 @@ interface ApiKeyInputProps {
   value: string;
   onChange: (apiKey: string) => void;
   disabled?: boolean;
+  /** 欄位下方的說明文字（例如取得 Key 的方式、隱私提醒） */
+  hint?: string;
 }
 
-export function ApiKeyInput({ value, onChange, disabled }: ApiKeyInputProps) {
+export function ApiKeyInput({ value, onChange, disabled, hint }: ApiKeyInputProps) {
   const [showKey, setShowKey] = useState(false);
 
   return (
@@ -35,6 +37,7 @@ export function ApiKeyInput({ value, onChange, disabled }: ApiKeyInputProps) {
           <Icon icon={showKey ? 'mdi:eye-off' : 'mdi:eye'} className="w-5 h-5" />
         </button>
       </div>
+      {hint && <p className="text-xs text-gray-500">{hint}</p>}
     </div>
   );
 }

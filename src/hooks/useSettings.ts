@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { saveSettings, loadSettings } from '@/services/settingsService';
+import { DEFAULT_MODEL } from '@/services/imageProviders';
 import type { UserSettings } from '@/types';
 
 const DEFAULT_SETTINGS: UserSettings = {
-  model: 'gemini-3.1-flash-image-preview',
-  apiKey: '',
+  model: DEFAULT_MODEL,
+  apiKeys: {},
 };
 
 interface UseSettingsReturn {
@@ -29,7 +30,7 @@ export function useSettings(): UseSettingsReturn {
       const saved = await loadSettings();
       if (saved) {
         if (!saved.model) {
-          saved.model = 'gemini-3.1-flash-image-preview';
+          saved.model = DEFAULT_MODEL;
         }
         setSettings(saved);
       }

@@ -7,7 +7,7 @@ vi.mock('@/hooks/useSettings', () => ({ useSettings: useSettingsMock }));
 import { SettingsSection } from '@/options/components/SettingsSection';
 
 const hookState = (overrides: Record<string, unknown> = {}) => ({
-  settings: { model: 'gemini-3.1-flash-image-preview', apiKey: '' },
+  settings: { model: 'gemini-3.1-flash-image-preview', apiKeys: { gemini: '' } },
   isLoading: false,
   isSaving: false,
   error: null,
@@ -32,7 +32,11 @@ describe('SettingsSection', () => {
   });
 
   it('以已儲存的設定初始化表單', () => {
-    useSettingsMock.mockReturnValue(hookState({ settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'saved-key' } }));
+    useSettingsMock.mockReturnValue(
+      hookState({
+        settings: { model: 'gemini-3.1-flash-image-preview', apiKeys: { gemini: 'saved-key' } },
+      })
+    );
     render(<SettingsSection />);
 
     expect(screen.getByText('模型設定')).toBeInTheDocument();
@@ -67,7 +71,10 @@ describe('SettingsSection', () => {
 
     it('儲存中顯示「儲存中...」並停用所有欄位', () => {
       useSettingsMock.mockReturnValue(
-        hookState({ isSaving: true, settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'abc' } })
+        hookState({
+          isSaving: true,
+          settings: { model: 'gemini-3.1-flash-image-preview', apiKeys: { gemini: 'abc' } },
+        })
       );
       render(<SettingsSection />);
 
@@ -89,13 +96,16 @@ describe('SettingsSection', () => {
       fireEvent.click(saveButton());
 
       expect(await screen.findByText('設定已儲存')).toBeInTheDocument();
-      expect(state.saveSettings).toHaveBeenCalledWith({ model: 'gemini-3.1-flash-image-preview', apiKey: 'my-key' });
+      expect(state.saveSettings).toHaveBeenCalledWith({
+        model: 'gemini-3.1-flash-image-preview',
+        apiKeys: { gemini: 'my-key' },
+      });
       expect(onSaveSuccess).toHaveBeenCalled();
     });
 
     it('失敗：顯示錯誤提示並呼叫 onSaveError', async () => {
       const state = hookState({
-        settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'k' },
+        settings: { model: 'gemini-3.1-flash-image-preview', apiKeys: { gemini: 'k' } },
         saveSettings: vi.fn().mockRejectedValue(new Error('disk full')),
       });
       useSettingsMock.mockReturnValue(state);
@@ -111,7 +121,7 @@ describe('SettingsSection', () => {
     it('失敗且不是 Error 時以預設錯誤回報', async () => {
       useSettingsMock.mockReturnValue(
         hookState({
-          settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'k' },
+          settings: { model: 'gemini-3.1-flash-image-preview', apiKeys: { gemini: 'k' } },
           saveSettings: vi.fn().mockRejectedValue('x'),
         })
       );
@@ -125,7 +135,11 @@ describe('SettingsSection', () => {
     });
 
     it('提示在 3 秒後消失', async () => {
-      useSettingsMock.mockReturnValue(hookState({ settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'k' } }));
+      useSettingsMock.mockReturnValue(
+        hookState({
+          settings: { model: 'gemini-3.1-flash-image-preview', apiKeys: { gemini: 'k' } },
+        })
+      );
       const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
       render(<SettingsSection />);
 
@@ -144,9 +158,67 @@ describe('SettingsSection', () => {
     useSettingsMock.mockReturnValue(hookState());
     const { rerender } = render(<SettingsSection />);
 
-    useSettingsMock.mockReturnValue(hookState({ settings: { model: 'gemini-3.1-flash-image-preview', apiKey: 'loaded-later' } }));
+    useSettingsMock.mockReturnValue(
+      hookState({
+        settings: { model: 'gemini-3.1-flash-image-preview', apiKeys: { gemini: 'loaded-later' } },
+      })
+    );
     rerender(<SettingsSection />);
 
     expect(screen.getByLabelText('API Key')).toHaveValue('loaded-later');
+  });
+
+  describe('供應商', () => {
+    it('依已儲存的模型推得供應商', () => {
+      useSettingsMock.mockReturnValue(
+        hookState({
+          settings: { model: 'qwen/qwen-image-2.1-pro', apiKeys: { openrouter: 'or-key' } },
+        })
+      );
+      render(<SettingsSection />);
+
+      expect(screen.getByLabelText('供應商')).toHaveValue('openrouter');
+      expect(screen.getByLabelText('模型')).toHaveValue('qwen/qwen-image-2.1-pro');
+      expect(screen.getByLabelText('API Key')).toHaveValue('or-key');
+      expect(screen.getByText(/經由 OpenRouter 轉送/)).toBeInTheDocument();
+    });
+
+    it('切換供應商：改選該供應商第一個模型，並顯示該供應商自己的 Key', () => {
+      useSettingsMock.mockReturnValue(
+        hookState({
+          settings: { model: 'gemini-3.1-flash-image-preview', apiKeys: { gemini: 'g-key' } },
+        })
+      );
+      render(<SettingsSection />);
+
+      fireEvent.change(screen.getByLabelText('供應商'), { target: { value: 'openrouter' } });
+
+      expect(screen.getByLabelText('模型')).toHaveValue('qwen/qwen-image-2.1-pro');
+      expect(screen.getByLabelText('API Key')).toHaveValue('');
+      expect(saveButton()).toBeDisabled();
+    });
+
+    it('各供應商的 Key 分開保存，儲存時一併送出', async () => {
+      const state = hookState({
+        settings: { model: 'gemini-3.1-flash-image-preview', apiKeys: { gemini: 'g-key' } },
+      });
+      useSettingsMock.mockReturnValue(state);
+      render(<SettingsSection />);
+
+      fireEvent.change(screen.getByLabelText('供應商'), { target: { value: 'openrouter' } });
+      fireEvent.change(screen.getByLabelText('API Key'), { target: { value: 'or-key' } });
+      fireEvent.change(screen.getByLabelText('模型'), { target: { value: 'qwen/qwen-image-3' } });
+      fireEvent.click(saveButton());
+
+      await screen.findByText('設定已儲存');
+      expect(state.saveSettings).toHaveBeenCalledWith({
+        model: 'qwen/qwen-image-3',
+        apiKeys: { gemini: 'g-key', openrouter: 'or-key' },
+      });
+
+      // 切回 Gemini 時仍是原本的 Key
+      fireEvent.change(screen.getByLabelText('供應商'), { target: { value: 'gemini' } });
+      expect(screen.getByLabelText('API Key')).toHaveValue('g-key');
+    });
   });
 });

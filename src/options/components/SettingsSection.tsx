@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import { ProviderSelector } from './ProviderSelector';
 import { ModelSelector } from './ModelSelector';
 import { ApiKeyInput } from './ApiKeyInput';
 import { useSettings } from '@/hooks/useSettings';
+import {
+  DEFAULT_MODEL,
+  IMAGE_PROVIDERS,
+  getProvider,
+  getProviderForModel,
+} from '@/services/imageProviders';
 import type { UserSettings } from '@/types';
+import type { ProviderId } from '@/types/provider';
 
 interface SettingsSectionProps {
   onSaveSuccess?: () => void;
@@ -13,8 +21,8 @@ interface SettingsSectionProps {
 export function SettingsSection({ onSaveSuccess, onSaveError }: SettingsSectionProps) {
   const { settings, isLoading, isSaving, saveSettings } = useSettings();
   const [localSettings, setLocalSettings] = useState<UserSettings>({
-    model: 'gemini-3.1-flash-image-preview',
-    apiKey: '',
+    model: DEFAULT_MODEL,
+    apiKeys: {},
   });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -23,6 +31,19 @@ export function SettingsSection({ onSaveSuccess, onSaveError }: SettingsSectionP
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
+
+  // 供應商由所選模型決定；API Key 則依供應商各自保存
+  const provider = getProviderForModel(localSettings.model);
+  const apiKey = localSettings.apiKeys[provider.id] ?? '';
+
+  const handleProviderChange = (id: ProviderId) => {
+    // 切換供應商時改選該供應商的第一個模型，各供應商的 API Key 保持不變
+    setLocalSettings((prev) => ({ ...prev, model: getProvider(id).models[0].value }));
+  };
+
+  const handleApiKeyChange = (value: string) => {
+    setLocalSettings((prev) => ({ ...prev, apiKeys: { ...prev.apiKeys, [provider.id]: value } }));
+  };
 
   const handleSave = async () => {
     try {
@@ -59,21 +80,30 @@ export function SettingsSection({ onSaveSuccess, onSaveError }: SettingsSectionP
       <h2 className="text-lg font-semibold text-gray-800 mb-4">模型設定</h2>
 
       <div className="space-y-4">
+        <ProviderSelector
+          value={provider.id}
+          onChange={handleProviderChange}
+          providers={IMAGE_PROVIDERS}
+          disabled={isSaving}
+        />
+
         <ModelSelector
           value={localSettings.model}
           onChange={(model) => setLocalSettings((prev) => ({ ...prev, model }))}
+          models={provider.models}
           disabled={isSaving}
         />
 
         <ApiKeyInput
-          value={localSettings.apiKey}
-          onChange={(apiKey) => setLocalSettings((prev) => ({ ...prev, apiKey }))}
+          value={apiKey}
+          onChange={handleApiKeyChange}
+          hint={provider.keyHint}
           disabled={isSaving}
         />
 
         <button
           onClick={handleSave}
-          disabled={isSaving || !localSettings.apiKey.trim()}
+          disabled={isSaving || !apiKey.trim()}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
           {isSaving ? (
