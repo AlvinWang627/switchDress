@@ -79,16 +79,12 @@ chrome.runtime.onMessage.addListener((message: ChromeMessage, _sender, sendRespo
       console.log('[background] AI_SYNTHESIZE received');
       (async () => {
         try {
-          // Convert data URL to Blob
-          const response = await fetch(personalPhotoDataUrl);
-          const personalPhotoBlob = await response.blob();
-
-          const result = await synthesizeImage(
-            personalPhotoBlob,
-            clothingDataUrl,
-            apiKey,
-            model
+          // Convert data URLs to Blobs
+          const [personalPhotoBlob, clothingBlob] = await Promise.all(
+            [personalPhotoDataUrl, clothingDataUrl].map(async (url) => (await fetch(url)).blob())
           );
+
+          const result = await synthesizeImage(personalPhotoBlob, clothingBlob, apiKey, model);
 
           if (result.success && result.imageBlob) {
             // Save to gallery (thumbnail creation skipped in background - Service Worker has no Canvas API)
