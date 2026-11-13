@@ -131,7 +131,7 @@ function AIActionButton({
   );
 }
 
-function PopupApp() {
+function SidePanelApp() {
   const { screenshots, capture, remove } = useScreenshot();
   const { photos, selectedPhoto, isLoading, selectPhoto } = usePersonalPhoto();
   const { settings } = useSettings();
@@ -215,7 +215,7 @@ function PopupApp() {
           onDeleteScreenshot={() => remove(0)}
         />
 
-        {/* ScreenshotOverlay is now rendered in the content script directly on the webpage */}
+        {/* ScreenshotOverlay 由 content script 直接渲染在網頁上 */}
 
         <PersonalPhotoSelector
           photos={photos}
@@ -236,7 +236,7 @@ function PopupApp() {
 
 const container = document.getElementById('root');
 if (container) {
-  createRoot(container).render(<PopupApp />);
+  createRoot(container).render(<SidePanelApp />);
 }
 
-export default PopupApp;
+export default SidePanelApp;

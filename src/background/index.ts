@@ -7,6 +7,12 @@ import type { ImageRecord } from '@/types/popup';
 
 console.log('switch-dress background service worker loaded');
 
+// 點擊工具列圖示時開啟側邊欄（manifest 的 side_panel.default_path）。
+// 此設定會被 Chrome 保存，但每次 service worker 啟動時重設可確保更新後仍生效。
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error: unknown) => console.error('[background] setPanelBehavior failed:', error));
+
 chrome.runtime.onMessage.addListener((message: ChromeMessage, _sender, sendResponse) => {
   const { type, payload } = message;
 

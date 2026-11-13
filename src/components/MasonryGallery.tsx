@@ -14,7 +14,7 @@ function MasonryGallery({ images, onDelete, onToggleFavorite }: MasonryGalleryPr
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">尚無合成照片</p>
         <p className="text-gray-400 dark:text-gray-500 text-sm">
-          在 Popup 頁面選擇照片進行 AI 合成
+          在側邊欄選擇照片進行 AI 合成
         </p>
       </div>
     );

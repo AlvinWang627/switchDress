@@ -16,9 +16,9 @@ vi.mock('@/hooks/usePersonalPhoto', () => ({ usePersonalPhoto: mocks.usePersonal
 vi.mock('@/hooks/useSettings', () => ({ useSettings: mocks.useSettings }));
 vi.mock('@/hooks/useAISynthesis', () => ({ useAISynthesis: mocks.useAISynthesis }));
 vi.mock('@/hooks/useNotification', () => ({ useNotification: mocks.useNotification }));
-vi.mock('@/popup/index.css?inline', () => ({ default: '' }));
+vi.mock('@/sidepanel/index.css?inline', () => ({ default: '' }));
 
-import PopupApp from '@/popup/index';
+import SidePanelApp from '@/sidepanel/index';
 
 const photo = (id: string): PersonalPhoto => ({
   id,
@@ -77,7 +77,7 @@ const readyToSynthesize = () => {
 
 const aiButton = (name: string | RegExp = 'AI 合成') => screen.getByRole('button', { name });
 
-describe('PopupApp', () => {
+describe('SidePanelApp', () => {
   beforeEach(() => {
     URL.createObjectURL = vi.fn(() => 'blob:x');
     vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -96,7 +96,7 @@ describe('PopupApp', () => {
 
   describe('標題列', () => {
     it('顯示品牌名稱與三個動作按鈕', () => {
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       expect(screen.getByRole('heading', { level: 1, name: 'switchDress' })).toBeInTheDocument();
       expect(screen.getByLabelText('Album')).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe('PopupApp', () => {
     it('點擊相機按鈕開始截圖', () => {
       const state = screenshotState();
       mocks.useScreenshot.mockReturnValue(state);
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       fireEvent.click(screen.getByLabelText('Camera'));
 
@@ -121,7 +121,7 @@ describe('PopupApp', () => {
         getURL: vi.fn((p: string) => `chrome-extension://ext/${p}`),
       });
       Object.assign(chrome.tabs, { create: vi.fn() });
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       fireEvent.click(screen.getByLabelText('Album'));
 
@@ -133,7 +133,7 @@ describe('PopupApp', () => {
     it('相簿按鈕：非擴充環境以 window.open 開啟開發用網址', () => {
       uninstallChromeMock();
       const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       fireEvent.click(screen.getByLabelText('Album'));
 
@@ -143,7 +143,7 @@ describe('PopupApp', () => {
 
   describe('衣服截圖區', () => {
     it('沒有截圖時顯示空狀態提示', () => {
-      render(<PopupApp />);
+      render(<SidePanelApp />);
       expect(screen.getByText('尚無截圖')).toBeInTheDocument();
       expect(screen.getByText('在網頁上框選衣服區域進行截圖')).toBeInTheDocument();
     });
@@ -151,7 +151,7 @@ describe('PopupApp', () => {
     it('有截圖時顯示預覽，刪除時移除第 0 張', () => {
       const state = screenshotState({ screenshots: [{ blob: new Blob(['s']) }] });
       mocks.useScreenshot.mockReturnValue(state);
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       expect(screen.queryByText('尚無截圖')).not.toBeInTheDocument();
       expect(screen.getByAltText('Screenshot')).toBeInTheDocument();
@@ -165,14 +165,14 @@ describe('PopupApp', () => {
   describe('個人照片區', () => {
     it('載入中顯示載入提示', () => {
       mocks.usePersonalPhoto.mockReturnValue(photoState({ isLoading: true }));
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       expect(screen.getByText('載入中...')).toBeInTheDocument();
       expect(screen.queryByText('尚未上傳相片')).not.toBeInTheDocument();
     });
 
     it('沒有照片時顯示引導前往設定', () => {
-      render(<PopupApp />);
+      render(<SidePanelApp />);
       expect(screen.getByText('尚未上傳相片')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /前往設定/ })).toBeInTheDocument();
     });
@@ -180,7 +180,7 @@ describe('PopupApp', () => {
     it('列出照片，點擊時以該照片 id 呼叫 selectPhoto', () => {
       const state = photoState({ photos: [photo('a'), photo('b')] });
       mocks.usePersonalPhoto.mockReturnValue(state);
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       expect(screen.getByText('請選擇個人照片')).toBeInTheDocument();
       fireEvent.click(screen.getByAltText('b.png'));
@@ -191,7 +191,7 @@ describe('PopupApp', () => {
     it('可用 Enter 鍵選取照片', () => {
       const state = photoState({ photos: [photo('a'), photo('b')] });
       mocks.usePersonalPhoto.mockReturnValue(state);
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       fireEvent.keyDown(screen.getByAltText('a.png').parentElement!, { key: 'Enter' });
 
@@ -201,7 +201,7 @@ describe('PopupApp', () => {
     it('只在被選取的照片上顯示勾選標記', () => {
       const [a, b] = [photo('a'), photo('b')];
       mocks.usePersonalPhoto.mockReturnValue(photoState({ photos: [a, b], selectedPhoto: b }));
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       const marks = screen.getAllByTestId('icon').filter((i) => i.dataset.icon === 'mdi:check');
       expect(marks).toHaveLength(1);
@@ -211,7 +211,7 @@ describe('PopupApp', () => {
     it('最多只顯示 6 張', () => {
       const photos = Array.from({ length: 8 }, (_, i) => photo(String(i)));
       mocks.usePersonalPhoto.mockReturnValue(photoState({ photos }));
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       expect(screen.getAllByRole('img')).toHaveLength(6);
     });
@@ -229,14 +229,14 @@ describe('PopupApp', () => {
     ])('%s時停用', (_label, breakCondition) => {
       readyToSynthesize();
       breakCondition();
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       expect(aiButton()).toBeDisabled();
     });
 
     it('條件齊全時啟用', () => {
       readyToSynthesize();
-      render(<PopupApp />);
+      render(<SidePanelApp />);
       expect(aiButton()).toBeEnabled();
     });
 
@@ -244,7 +244,7 @@ describe('PopupApp', () => {
       const { selected, clothing } = readyToSynthesize();
       const synthesis = synthesisState();
       mocks.useAISynthesis.mockReturnValue(synthesis);
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       fireEvent.click(aiButton());
 
@@ -261,7 +261,7 @@ describe('PopupApp', () => {
       mocks.useAISynthesis.mockReturnValue(
         synthesisState({ synthesize: vi.fn().mockRejectedValue(new Error('boom')) })
       );
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       await act(async () => {
         fireEvent.click(aiButton());
@@ -277,7 +277,7 @@ describe('PopupApp', () => {
     ])('狀態 %s 顯示「%s」', (status, label, icon) => {
       readyToSynthesize();
       mocks.useAISynthesis.mockReturnValue(synthesisState({ status }));
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       const button = aiButton(label);
       expect(button).toBeInTheDocument();
@@ -287,7 +287,7 @@ describe('PopupApp', () => {
     it('合成中即使條件齊全也停用，避免重複送出', () => {
       readyToSynthesize();
       mocks.useAISynthesis.mockReturnValue(synthesisState({ status: 'synthesizing' }));
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       expect(aiButton('合成中...')).toBeDisabled();
     });
@@ -306,7 +306,7 @@ describe('PopupApp', () => {
       mocks.useNotification.mockReturnValue(notification);
       const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
 
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       expect(notification.showSynthesisComplete).toHaveBeenCalledTimes(1);
       expect(notification.showError).not.toHaveBeenCalled();
@@ -324,7 +324,7 @@ describe('PopupApp', () => {
       mocks.useNotification.mockReturnValue(notification);
       const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
 
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       expect(notification.showError).toHaveBeenCalledWith('AI合成失敗，請重試');
       expect(notification.showSynthesisComplete).not.toHaveBeenCalled();
@@ -339,7 +339,7 @@ describe('PopupApp', () => {
       mocks.useAISynthesis.mockReturnValue(synthesisState({ status }));
       mocks.useNotification.mockReturnValue(notification);
 
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       expect(notification.showSynthesisComplete).not.toHaveBeenCalled();
       expect(notification.showError).not.toHaveBeenCalled();
@@ -350,7 +350,7 @@ describe('PopupApp', () => {
     it('非擴充環境：以 window.open 開啟開發用網址', () => {
       uninstallChromeMock();
       const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       fireEvent.click(screen.getByLabelText('Settings'));
 
@@ -360,7 +360,7 @@ describe('PopupApp', () => {
     it('擴充環境：使用 chrome.runtime.openOptionsPage', () => {
       const { chrome } = installChromeMock();
       Object.assign(chrome.runtime, { id: 'ext', openOptionsPage: vi.fn(), getURL: vi.fn() });
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       fireEvent.click(screen.getByLabelText('Settings'));
 
@@ -378,7 +378,7 @@ describe('PopupApp', () => {
         }),
       });
       Object.assign(chrome.tabs, { create: vi.fn() });
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       fireEvent.click(screen.getByLabelText('Settings'));
 
@@ -394,7 +394,7 @@ describe('PopupApp', () => {
         getURL: vi.fn((p: string) => `chrome-extension://ext/${p}`),
       });
       Object.assign(chrome.tabs, { create: vi.fn() });
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       fireEvent.click(screen.getByLabelText('Settings'));
 
@@ -406,7 +406,7 @@ describe('PopupApp', () => {
     it('「前往設定」按鈕與標題列設定鈕行為一致', () => {
       uninstallChromeMock();
       const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
-      render(<PopupApp />);
+      render(<SidePanelApp />);
 
       fireEvent.click(screen.getByRole('button', { name: /前往設定/ }));
 

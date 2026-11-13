@@ -64,7 +64,7 @@ describe('MasonryGallery', () => {
     render(<MasonryGallery images={[]} onDelete={() => {}} onToggleFavorite={() => {}} />);
 
     expect(screen.getByText('尚無合成照片')).toBeInTheDocument();
-    expect(screen.getByText('在 Popup 頁面選擇照片進行 AI 合成')).toBeInTheDocument();
+    expect(screen.getByText('在側邊欄選擇照片進行 AI 合成')).toBeInTheDocument();
     expect(screen.queryByAltText('Gallery item')).not.toBeInTheDocument();
   });
 
