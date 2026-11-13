@@ -15,7 +15,13 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: 'src/manifest.json',
+      // vite-plugin-chrome-extension 不會從 manifest 的 side_panel.default_path 推導入口，
+      // 需額外列出側邊欄頁面（輸出為 dist/sidepanel/index.html，與 manifest 的路徑一致）。
+      // 必須用物件形式：外掛處理陣列 input 時有 bug（splice 誤把 manifest 當成額外入口，其餘被丟棄）。
+      input: {
+        manifest: 'src/manifest.json',
+        'sidepanel/index': 'src/sidepanel/index.html',
+      },
     },
   },
 });

@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act, cleanup } from '@testing-library/react';
-import { installChromeMock, uninstallChromeMock } from '../helpers/chrome';
+import { installChromeMock, uninstallChromeMock, type StorageChangeListener } from '../helpers/chrome';
 import { useScreenshot } from '@/hooks/useScreenshot';
 
 const selection = { x: 1, y: 2, width: 3, height: 4 };
+const DRAFT = 'data:image/png;base64,AAA';
 
 describe('useScreenshot', () => {
   let chromeMock: ReturnType<typeof installChromeMock>['chrome'];
   let data: Record<string, unknown>;
+  let storageListeners: StorageChangeListener[];
   let alertSpy: ReturnType<typeof vi.fn>;
   let closeSpy: ReturnType<typeof vi.fn>;
 
@@ -15,13 +17,19 @@ describe('useScreenshot', () => {
     const installed = installChromeMock(initial);
     chromeMock = installed.chrome;
     data = installed.data;
+    storageListeners = installed.storageListeners;
+  };
+
+  /** 讓 fetch(dataUrl) 回傳指定 Blob（草稿還原用） */
+  const stubDraftFetch = (blob: Blob = new Blob(['img'], { type: 'image/png' })) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ blob: () => Promise.resolve(blob) }));
+    return blob;
   };
 
   beforeEach(() => {
     alertSpy = vi.fn();
     closeSpy = vi.fn();
     vi.stubGlobal('alert', alertSpy);
-    vi.stubGlobal('close', closeSpy);
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -37,32 +45,43 @@ describe('useScreenshot', () => {
   });
 
   describe('掛載時', () => {
-    it('沒有草稿時 screenshots 為空，並清除 isCapturing 旗標', () => {
+    it('沒有草稿時 screenshots 為空，且保留 isCapturing（截圖可能仍在進行中）', () => {
       setup({ isCapturing: true });
 
       const { result } = renderHook(() => useScreenshot());
 
       expect(result.current.screenshots).toEqual([]);
       expect(result.current.captureState).toEqual({ status: 'idle' });
-      expect(data.isCapturing).toBeUndefined();
+      expect(data.isCapturing).toBe(true);
     });
 
-    it('有草稿時還原成 Blob，並清除 isCapturing 旗標', async () => {
-      const blob = new Blob(['img'], { type: 'image/png' });
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ blob: () => Promise.resolve(blob) }));
-      setup({ draftScreenshot: 'data:image/png;base64,AAA', isCapturing: true });
+    it('側邊欄關閉期間完成的截圖（有草稿且 isCapturing）會還原成 Blob，並清除旗標', async () => {
+      const blob = stubDraftFetch();
+      setup({ draftScreenshot: DRAFT, isCapturing: true });
 
       const { result } = renderHook(() => useScreenshot());
 
       await waitFor(() => expect(result.current.screenshots).toHaveLength(1));
       expect(result.current.screenshots[0].blob).toBe(blob);
-      expect(fetch).toHaveBeenCalledWith('data:image/png;base64,AAA');
+      expect(fetch).toHaveBeenCalledWith(DRAFT);
       expect(data.isCapturing).toBeUndefined();
+      expect(data.draftScreenshot).toBe(DRAFT);
+    });
+
+    it('上一次開啟留下的草稿（沒有 isCapturing）會被刪除且不顯示（關閉側邊欄即清除）', () => {
+      stubDraftFetch();
+      setup({ draftScreenshot: DRAFT });
+
+      const { result } = renderHook(() => useScreenshot());
+
+      expect(data.draftScreenshot).toBeUndefined();
+      expect(fetch).not.toHaveBeenCalled();
+      expect(result.current.screenshots).toEqual([]);
     });
 
     it('草稿還原失敗時記錄錯誤且不丟出例外', async () => {
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('bad data url')));
-      setup({ draftScreenshot: 'broken' });
+      setup({ draftScreenshot: 'broken', isCapturing: true });
 
       const { result } = renderHook(() => useScreenshot());
 
@@ -71,11 +90,102 @@ describe('useScreenshot', () => {
     });
   });
 
+  describe('即時更新（storage.onChanged）', () => {
+    it('content script 寫入 draftScreenshot 時立即顯示預覽，並結束截圖流程', async () => {
+      const blob = stubDraftFetch();
+      setup({ isCapturing: true });
+      const { result } = renderHook(() => useScreenshot());
+
+      act(() => {
+        chromeMock.storage.local.set({ draftScreenshot: DRAFT });
+      });
+
+      await waitFor(() => expect(result.current.screenshots).toHaveLength(1));
+      expect(result.current.screenshots[0].blob).toBe(blob);
+      expect(result.current.captureState).toEqual({ status: 'idle' });
+      expect(data.isCapturing).toBeUndefined();
+    });
+
+    it('新的截圖會取代目前的預覽', async () => {
+      const first = new Blob(['first']);
+      const second = new Blob(['second']);
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce({ blob: () => Promise.resolve(first) })
+        .mockResolvedValueOnce({ blob: () => Promise.resolve(second) });
+      vi.stubGlobal('fetch', fetchMock);
+      setup();
+      const { result } = renderHook(() => useScreenshot());
+
+      act(() => {
+        chromeMock.storage.local.set({ draftScreenshot: 'data:1' });
+      });
+      await waitFor(() => expect(result.current.screenshots[0]?.blob).toBe(first));
+
+      act(() => {
+        chromeMock.storage.local.set({ draftScreenshot: 'data:2' });
+      });
+      await waitFor(() => expect(result.current.screenshots[0]?.blob).toBe(second));
+      expect(result.current.screenshots).toHaveLength(1);
+    });
+
+    it('isCapturing 被移除（使用者取消框選）時回到 idle', () => {
+      setup();
+      // query 永遠不回呼 → 狀態停在 capturing
+      chromeMock.tabs.query.mockImplementation(() => {});
+      const { result } = renderHook(() => useScreenshot());
+      act(() => {
+        void result.current.capture();
+      });
+      data.isCapturing = true;
+
+      act(() => {
+        chromeMock.storage.local.remove(['isCapturing']);
+      });
+
+      expect(result.current.captureState).toEqual({ status: 'idle' });
+    });
+
+    it('忽略 draftScreenshot 被移除的事件，不清空目前的預覽', () => {
+      setup({ draftScreenshot: 'x' });
+      const { result } = renderHook(() => useScreenshot());
+      act(() => result.current.addScreenshot(new Blob(['a']), selection));
+
+      act(() => {
+        storageListeners.forEach((l) => l({ draftScreenshot: { oldValue: 'x' } }, 'local'));
+      });
+
+      expect(result.current.screenshots).toHaveLength(1);
+    });
+
+    it('忽略其他 storage 區域的變更', () => {
+      stubDraftFetch();
+      setup();
+      renderHook(() => useScreenshot());
+
+      act(() => {
+        storageListeners.forEach((l) => l({ draftScreenshot: { newValue: DRAFT } }, 'sync'));
+      });
+
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('卸載時移除 listener', () => {
+      setup();
+      const { unmount } = renderHook(() => useScreenshot());
+      expect(storageListeners).toHaveLength(1);
+
+      unmount();
+
+      expect(storageListeners).toHaveLength(0);
+    });
+  });
+
   describe('capture', () => {
     const activeTab = (tabs: Array<{ id?: number }>) =>
       chromeMock.tabs.query.mockImplementation((_q: unknown, cb: (t: unknown[]) => void) => cb(tabs));
 
-    it('對作用中分頁送出 START_OVERLAY，成功後關閉 popup 並保留 isCapturing', () => {
+    it('對作用中分頁送出 START_OVERLAY 並設定 isCapturing，側邊欄保持開啟', () => {
       setup();
       activeTab([{ id: 9 }]);
       chromeMock.tabs.sendMessage.mockImplementation((_id: number, _msg: unknown, cb: () => void) => cb());
@@ -88,8 +198,28 @@ describe('useScreenshot', () => {
       expect(chromeMock.tabs.query).toHaveBeenCalledWith({ active: true, currentWindow: true }, expect.any(Function));
       expect(chromeMock.tabs.sendMessage).toHaveBeenCalledWith(9, { type: 'START_OVERLAY' }, expect.any(Function));
       expect(data.isCapturing).toBe(true);
-      expect(closeSpy).toHaveBeenCalled();
+      expect(closeSpy).not.toHaveBeenCalled();
       expect(result.current.captureState).toEqual({ status: 'capturing' });
+    });
+
+    it('完整流程：送出 START_OVERLAY → content script 存下截圖 → 側邊欄顯示預覽', async () => {
+      const blob = stubDraftFetch();
+      setup();
+      activeTab([{ id: 9 }]);
+      chromeMock.tabs.sendMessage.mockImplementation((_id: number, _msg: unknown, cb: () => void) => cb());
+      const { result } = renderHook(() => useScreenshot());
+
+      act(() => {
+        void result.current.capture();
+      });
+      act(() => {
+        // 模擬 content script 在使用者框選確認後寫入
+        chromeMock.storage.local.set({ draftScreenshot: DRAFT });
+      });
+
+      await waitFor(() => expect(result.current.screenshots[0]?.blob).toBe(blob));
+      expect(result.current.captureState).toEqual({ status: 'idle' });
+      expect(data.isCapturing).toBeUndefined();
     });
 
     it('找不到作用中分頁時提示並回到 idle', () => {
@@ -122,13 +252,12 @@ describe('useScreenshot', () => {
         });
 
         expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('重新整理'));
-        expect(closeSpy).not.toHaveBeenCalled();
         expect(data.isCapturing).toBeUndefined();
         expect(result.current.captureState).toEqual({ status: 'idle' });
       }
     );
 
-    it('其他 lastError（例如 port closed）仍關閉 popup', () => {
+    it('其他 lastError（例如 port closed）不提示，維持截圖流程', () => {
       setup();
       activeTab([{ id: 1 }]);
       chromeMock.tabs.sendMessage.mockImplementation((_id: number, _msg: unknown, cb: () => void) => {
@@ -141,8 +270,10 @@ describe('useScreenshot', () => {
         void result.current.capture();
       });
 
-      expect(closeSpy).toHaveBeenCalled();
       expect(alertSpy).not.toHaveBeenCalled();
+      expect(closeSpy).not.toHaveBeenCalled();
+      expect(data.isCapturing).toBe(true);
+      expect(result.current.captureState).toEqual({ status: 'capturing' });
     });
   });
 
@@ -159,7 +290,7 @@ describe('useScreenshot', () => {
     });
 
     it('remove 刪除指定索引並移除草稿', () => {
-      setup({ draftScreenshot: 'x' });
+      setup();
       const { result } = renderHook(() => useScreenshot());
       act(() => {
         result.current.addScreenshot(new Blob(['a']), selection);
@@ -197,27 +328,6 @@ describe('useScreenshot', () => {
       act(() => result.current.resetCapture());
 
       expect(result.current.captureState).toEqual({ status: 'idle' });
-    });
-  });
-
-  describe('卸載時', () => {
-    it('沒有進行中的截圖流程時刪除草稿（關閉 popup 即刪除）', () => {
-      setup({ draftScreenshot: 'x' });
-      const { unmount } = renderHook(() => useScreenshot());
-
-      unmount();
-
-      expect(data.draftScreenshot).toBeUndefined();
-    });
-
-    it('截圖流程進行中（isCapturing）不刪除草稿', () => {
-      setup({ draftScreenshot: 'x' });
-      const { unmount } = renderHook(() => useScreenshot());
-      data.isCapturing = true;
-
-      unmount();
-
-      expect(data.draftScreenshot).toBe('x');
     });
   });
 });

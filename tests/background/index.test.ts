@@ -53,6 +53,22 @@ describe('background service worker', () => {
     expect(chromeMock.runtime.onMessage.addListener).toHaveBeenCalledTimes(1);
   });
 
+  it('載入時設定點擊工具列圖示開啟側邊欄', () => {
+    expect(chromeMock.sidePanel.setPanelBehavior).toHaveBeenCalledWith({ openPanelOnActionClick: true });
+  });
+
+  it('setPanelBehavior 失敗時只記錄錯誤，不影響訊息處理', async () => {
+    vi.resetModules();
+    const installed = installChromeMock();
+    installed.chrome.sidePanel.setPanelBehavior.mockRejectedValueOnce(new Error('unsupported'));
+
+    await import('@/background/index');
+    await vi.waitFor(() =>
+      expect(console.error).toHaveBeenCalledWith('[background] setPanelBehavior failed:', expect.any(Error))
+    );
+    expect(installed.listeners).toHaveLength(1);
+  });
+
   describe('GET_IMAGES', () => {
     it('回傳所有圖片', async () => {
       const images = [{ id: 'a' }];

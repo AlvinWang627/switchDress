@@ -11,6 +11,10 @@ export interface ChromeExtensionManifest {
     default_title?: string;
     default_popup?: string;
   };
+  side_panel?: {
+    default_path: string;
+  };
+  minimum_chrome_version?: string;
   background?: {
     service_worker: string;
     type?: 'module';

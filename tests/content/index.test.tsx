@@ -72,7 +72,7 @@ describe('content script', () => {
     expect(chromeMock.runtime.onMessage.addListener).toHaveBeenCalledTimes(1);
   });
 
-  it('收到 START_OVERLAY 時立即回覆成功，避免 popup 端出現 lastError', async () => {
+  it('收到 START_OVERLAY 時立即回覆成功，避免側邊欄端出現 lastError', async () => {
     const sendResponse = await startOverlay();
     expect(sendResponse).toHaveBeenCalledWith({ success: true });
   });
@@ -114,19 +114,21 @@ describe('content script', () => {
     expect(host()).toBeNull();
   });
 
-  it('取消：移除 overlay，之後可重新開啟', async () => {
+  it('取消：移除 overlay 並清除 isCapturing（讓側邊欄回到 idle），之後可重新開啟', async () => {
+    data.isCapturing = true;
     await startOverlay();
     const cancel = overlayIn(host()!)!.querySelector('[data-testid="cancel"]') as HTMLElement;
 
     await act(async () => cancel.click());
 
     expect(host()).toBeNull();
+    expect(data.isCapturing).toBeUndefined();
 
     await startOverlay();
     expect(host()).not.toBeNull();
   });
 
-  it('確認：把裁切結果以 base64 存入 draftScreenshot、提示、並移除 overlay', async () => {
+  it('確認：把裁切結果以 base64 存入 draftScreenshot 並移除 overlay，不再跳出提示', async () => {
     await startOverlay();
     const confirm = overlayIn(host()!)!.querySelector('[data-testid="confirm"]') as HTMLElement;
 
@@ -137,7 +139,8 @@ describe('content script', () => {
     });
 
     expect(String(data.draftScreenshot)).toMatch(/^data:image\/png;base64,/);
-    expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('截圖已儲存'));
+    // 側邊欄透過 storage.onChanged 即時顯示預覽，不需要 alert 引導使用者
+    expect(alertSpy).not.toHaveBeenCalled();
     expect(host()).toBeNull();
   });
 

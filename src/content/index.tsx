@@ -13,8 +13,8 @@ function ContentApp({ imageUrl, onUnmount }: { imageUrl: string; onUnmount: () =
       reader.readAsDataURL(blob);
       reader.onloadend = () => {
         const base64data = reader.result;
+        // 側邊欄透過 chrome.storage.onChanged 監聽 draftScreenshot，寫入後會立即顯示預覽
         chrome.storage.local.set({ draftScreenshot: base64data }, () => {
-          alert('截圖已儲存！請點擊右上角 switchDress 擴充功能圖示來查看。');
           onUnmount();
         });
       };
@@ -23,6 +23,8 @@ function ContentApp({ imageUrl, onUnmount }: { imageUrl: string; onUnmount: () =
   );
 
   const handleCancel = useCallback(() => {
+    // 結束截圖流程，讓側邊欄回到 idle
+    chrome.storage.local.remove(['isCapturing']);
     onUnmount();
   }, [onUnmount]);
 
@@ -88,7 +90,7 @@ function mountOverlay(imageUrl: string) {
 
 chrome.runtime.onMessage.addListener((message: ChromeMessage, _sender, sendResponse) => {
   if (message.type === MESSAGE_TYPES.START_OVERLAY) {
-    // 立即回覆，避免 popup 的 sendMessage 發生 lastError
+    // 立即回覆，避免側邊欄的 sendMessage 發生 lastError
     sendResponse({ success: true });
 
     chrome.runtime.sendMessage({ type: MESSAGE_TYPES.CAPTURE_TAB }, (response) => {
